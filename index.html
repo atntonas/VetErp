@@ -835,7 +835,7 @@ async function onSaveEvent() {
       alert('✅ Event updated');
     } else {
       await calProxy('POST', `${CAL_BASE}/events`, event);
-      alert('✅ Event added'); onClearForm(); onSelectDay(selectedDay); build(); //
+      alert('✅ Event added'); onClearForm(); renderEvents(events); build(); //
     }
      
   } catch(e) { alert('Error: ' + e.message); }
