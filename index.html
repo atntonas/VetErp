@@ -848,7 +848,6 @@ async function onDeleteEvent() {
   try {
     await calProxy('DELETE', `${CAL_BASE}/events/${id}`);
     alert('✅ Deleted'); onClearForm();
-if (selectedDay) await onSelectDay(selectedDay);
 }
 }
 
