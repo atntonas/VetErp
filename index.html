@@ -840,15 +840,6 @@ async function onSaveEvent() {
     onClearForm();
 await onSelectDay(selectedDay); // ✅ instead of build() + onSelectDay()
 
-async function onDeleteEvent() {
-  if (!googleToken) { alert('Please sign in with Google first'); return; }
-  const id = document.getElementById('evId').value.trim();
-  if (!id) { alert('No event selected'); return; }
-  if (!confirm('Delete this event?')) return;
-  try {
-    await calProxy('DELETE', `${CAL_BASE}/events/${id}`);
-    alert('✅ Deleted'); onClearForm();
-}
 
 
 function onClearForm() {
