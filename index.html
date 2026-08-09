@@ -849,8 +849,8 @@ async function onDeleteEvent() {
   if (!confirm('Delete this event?')) return;
   try {
     await calProxy('DELETE', `${CAL_BASE}/events/${id}`);
-    alert('✅ Deleted'); onClearForm(); await onSelectDay(selectedDay);
-  } catch(e) { alert('Error: ' + e.message); }
+    alert('✅ Deleted'); onClearForm(); 
+  } 
 }
 
 function onClearForm() {
