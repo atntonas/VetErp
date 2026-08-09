@@ -760,7 +760,7 @@ function renderGrid(counts) {
     : '<i style="color:#999">Sign in with Google to manage events</i>';
 }
 
-async function onSelectDay(day) {
+  async function onSelectDay(day) {
   if (!googleToken) { alert('Please sign in with Google to view events'); return; }
   selectedDay = day;
   const ds = `${curY}-${pad(curM+1)}-${pad(day)}`;
@@ -777,10 +777,19 @@ async function onSelectDay(day) {
       description: ev.description || ''
     }));
     renderEvents(events);
+
+    // ✅ Only update the selected day highlight, don't rebuild the whole grid
+    document.querySelectorAll('.day').forEach(el => el.classList.remove('selected'));
+    const allDays = document.querySelectorAll('.day');
+    const offset = new Date(curY, curM, 1).getDay();
+    const adjustedOffset = offset === 0 ? 6 : offset - 1;
+    const targetIndex = adjustedOffset + day - 1 + 7; // +7 for weekday headers
+    if (allDays[targetIndex]) allDays[targetIndex].classList.add('selected');
+
   } catch(e) {
     document.getElementById('eventList').innerHTML = `<i style="color:red">Error: ${e.message}</i>`;
   }
-}
+  }
 
 function renderEvents(events) {
   const container = document.getElementById('eventList');
