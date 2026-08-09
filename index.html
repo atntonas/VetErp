@@ -776,7 +776,7 @@ async function onSelectDay(day) {
       end: ev.end.dateTime ? ev.end.dateTime.substring(11,16) : '',
       description: ev.description || ''
     }));
-    renderEvents(events); build();
+    renderEvents(events); 
 
     // ✅ Only update the selected day highlight, don't rebuild the whole grid
     document.querySelectorAll('.day').forEach(el => el.classList.remove('selected'));
@@ -838,7 +838,7 @@ async function onSaveEvent() {
       alert('✅ Event added');
     }
     onClearForm();
-await onSelectDay(selectedDay); // ✅ instead of build() + onSelectDay()
+await onSelectDay(selectedDay); build(); // 
   } catch(e) { alert('Error: ' + e.message); }
 }
   
