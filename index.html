@@ -849,7 +849,7 @@ async function onDeleteEvent() {
     await calProxy('DELETE', `${CAL_BASE}/events/${id}`);
     alert('✅ Deleted'); onClearForm();
 }
-}
+
 
 function onClearForm() {
   ['evId','evTitle','evDate','evStart','evEnd','evDesc'].forEach(id => { document.getElementById(id).value = ''; });
