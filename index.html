@@ -841,7 +841,7 @@ async function onSaveEvent() {
 await onSelectDay(selectedDay); // ✅ instead of build() + onSelectDay()
   } catch(e) { alert('Error: ' + e.message); }
 }
-
+  
 async function onDeleteEvent() {
   if (!googleToken) { alert('Please sign in with Google first'); return; }
   const id = document.getElementById('evId').value.trim();
@@ -849,8 +849,8 @@ async function onDeleteEvent() {
   if (!confirm('Delete this event?')) return;
   try {
     await calProxy('DELETE', `${CAL_BASE}/events/${id}`);
-    alert('✅ Deleted'); onClearForm(); 
-  } 
+    alert('✅ Deleted'); onClearForm(); build();
+  } catch(e) { alert('Error: ' + e.message); }
 }
 
 function onClearForm() {
