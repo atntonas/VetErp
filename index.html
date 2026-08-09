@@ -780,7 +780,6 @@ async function onSelectDay(day) {
   } catch(e) {
     document.getElementById('eventList').innerHTML = `<i style="color:red">Error: ${e.message}</i>`;
   }
-  build();
 }
 
 function renderEvents(events) {
