@@ -850,6 +850,7 @@ async function onDeleteEvent() {
     alert('✅ Deleted'); onClearForm();
 if (selectedDay) await onSelectDay(selectedDay);
 }
+}
 
 function onClearForm() {
   ['evId','evTitle','evDate','evStart','evEnd','evDesc'].forEach(id => { document.getElementById(id).value = ''; });
