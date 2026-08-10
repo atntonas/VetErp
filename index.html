@@ -1109,12 +1109,28 @@ async function sendVaccineReminder(petID, petName, ownerName, nextDate, btn) {
   const owner = pet ? ownersData.find(o => o.id === pet.owner_id) : null;
   if (!owner || !owner.email) { alert('No email found for this owner'); btn.disabled=false; btn.innerText='📧 Send'; return; }
   const keyword = document.getElementById('vaccineType').value;
+
+  // ✅ Get last_date from the table cell
+  const row = document.getElementById('row-' + petID);
+  const lastDate = row ? row.cells[2].innerText : '';
+
   try {
-    await api('sendVaccineReminder', { ownerEmail: owner.email, ownerName, petName, nextDate, keyword });
+    await api('sendVaccineReminder', {
+      ownerEmail: owner.email,
+      ownerName, petName, nextDate, keyword,
+      pet_id: petID,      // ✅ pass pet_id
+      last_date: lastDate  // ✅ pass last_date
+    });
     btn.innerText = '✅ Sent'; btn.style.background = '#888';
-    const row = document.getElementById('row-' + petID);
-    if (row) { const cb = row.querySelector('input[type=checkbox]'); if(cb) cb.checked=true; row.style.background='#e8f5e9'; await toggleReminder(petID, row.cells[2].innerText, true, cb); }
-  } catch(e) { alert('Failed: ' + e.message); btn.disabled=false; btn.innerText='📧 Send'; }
+    if (row) {
+      const cb = row.querySelector('input[type=checkbox]');
+      if (cb) cb.checked = true;
+      row.style.background = '#e8f5e9';
+    }
+  } catch(e) {
+    alert('Failed: ' + e.message);
+    btn.disabled = false; btn.innerText = '📧 Send';
+  }
 }
 
 // =====================
