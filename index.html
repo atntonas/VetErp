@@ -776,7 +776,7 @@ async function onSelectDay(day) {
       end: ev.end.dateTime ? ev.end.dateTime.substring(11,16) : '',
       description: ev.description || ''
     }));
-    renderEvents(events); renderGrid();
+    renderEvents(events); 
 
   
 
@@ -831,7 +831,7 @@ async function onSaveEvent() {
       await calProxy('POST', `${CAL_BASE}/events`, event);
       alert('✅ Event added'); 
     }
-     onClearForm(); onSelectDay(selectedDay); 
+     onClearForm(); onSelectDay(selectedDay); build();
   } catch(e) { alert('Error: ' + e.message); }
 }
   
