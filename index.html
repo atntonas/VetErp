@@ -776,7 +776,7 @@ async function onSelectDay(day) {
       end: ev.end.dateTime ? ev.end.dateTime.substring(11,16) : '',
       description: ev.description || ''
     }));
-    renderEvents(events);
+    renderEvents(events); renderGrid(counts);
 
   
 
