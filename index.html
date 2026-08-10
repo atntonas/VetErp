@@ -1129,7 +1129,7 @@ async function sendVaccineReminder(petID, petName, ownerName, nextDate, btn) {
     }
   } catch(e) {
     alert('Failed: ' + e.message);
-    btn.disabled = true; btn.innerText = '✅ Sent';
+    btn.disabled = false; btn.innerText = '📧 Send';
   }
 }
 
