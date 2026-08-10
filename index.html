@@ -727,6 +727,13 @@ async function build() {
     } catch(e) { console.error('Calendar:', e); }
   }
   renderGrid(counts);
+
+  // ✅ After grid is rebuilt, re-render events for selected day if one is selected
+  if (selectedDay) {
+    const ds = `${curY}-${pad(curM+1)}-${pad(selectedDay)}`;
+    document.getElementById('evDate').value = ds;
+    await loadEventsForDay(selectedDay);
+  }
 }
 
 function renderGrid(counts) {
@@ -755,16 +762,18 @@ function renderGrid(counts) {
     el.onclick = () => onSelectDay(d);
     grid.appendChild(el);
   }
-  document.getElementById('eventList').innerHTML = googleToken
-    ? '<i>Select a day to see events</i>'
-    : '<i style="color:#999">Sign in with Google to manage events</i>';
+
+  // ✅ Only reset eventList text if no day is selected
+  if (!selectedDay) {
+    document.getElementById('eventList').innerHTML = googleToken
+      ? '<i>Select a day to see events</i>'
+      : '<i style="color:#999">Sign in with Google to manage events</i>';
+  }
 }
 
-async function onSelectDay(day) {
-  if (!googleToken) { alert('Please sign in with Google to view events'); return; }
-  selectedDay = day;
+// ✅ Separated event loading from day selection
+async function loadEventsForDay(day) {
   const ds = `${curY}-${pad(curM+1)}-${pad(day)}`;
-  document.getElementById('evDate').value = ds;
   document.getElementById('eventList').innerHTML = '<i>Loading...</i>';
   try {
     const start = new Date(ds + 'T00:00:00').toISOString();
@@ -776,13 +785,27 @@ async function onSelectDay(day) {
       end: ev.end.dateTime ? ev.end.dateTime.substring(11,16) : '',
       description: ev.description || ''
     }));
-    renderEvents(events); 
-
-  
-
+    renderEvents(events);
   } catch(e) {
     document.getElementById('eventList').innerHTML = `<i style="color:red">Error: ${e.message}</i>`;
   }
+}
+
+async function onSelectDay(day) {
+  if (!googleToken) { alert('Please sign in with Google to view events'); return; }
+  selectedDay = day;
+  const ds = `${curY}-${pad(curM+1)}-${pad(day)}`;
+  document.getElementById('evDate').value = ds;
+
+  // ✅ Update selected highlight without rebuilding grid
+  document.querySelectorAll('#calendarGrid .day').forEach(el => el.classList.remove('selected'));
+  const allCells = document.querySelectorAll('#calendarGrid .day');
+  const firstDay = new Date(curY, curM, 1).getDay();
+  const offset = (firstDay === 0 ? 6 : firstDay - 1);
+  const targetIndex = offset + day - 1;
+  if (allCells[targetIndex]) allCells[targetIndex].classList.add('selected');
+
+  await loadEventsForDay(day);
 }
 
 function renderEvents(events) {
@@ -829,12 +852,13 @@ async function onSaveEvent() {
       alert('✅ Event updated');
     } else {
       await calProxy('POST', `${CAL_BASE}/events`, event);
-      alert('✅ Event added'); 
+      alert('✅ Event added');
     }
-     onClearForm(); onSelectDay(selectedDay); build();
+    onClearForm();
+    await build(); // ✅ rebuild grid dots AND re-render events
   } catch(e) { alert('Error: ' + e.message); }
 }
-  
+
 async function onDeleteEvent() {
   if (!googleToken) { alert('Please sign in with Google first'); return; }
   const id = document.getElementById('evId').value.trim();
@@ -842,7 +866,9 @@ async function onDeleteEvent() {
   if (!confirm('Delete this event?')) return;
   try {
     await calProxy('DELETE', `${CAL_BASE}/events/${id}`);
-    alert('✅ Deleted'); onClearForm(); onSelectDay(selectedDay); 
+    alert('✅ Deleted');
+    onClearForm();
+    await build(); // ✅ rebuild grid dots AND re-render events
   } catch(e) { alert('Error: ' + e.message); }
 }
 
@@ -850,12 +876,13 @@ function onClearForm() {
   ['evId','evTitle','evDate','evStart','evEnd','evDesc'].forEach(id => { document.getElementById(id).value = ''; });
 }
 
-function prevMonth() { curM--; if (curM<0) { curM=11; curY--; } build(); }
-function nextMonth() { curM++; if (curM>11) { curM=0; curY++; } build(); }
+function prevMonth() { curM--; if (curM<0) { curM=11; curY--; } selectedDay = null; build(); }
+function nextMonth() { curM++; if (curM>11) { curM=0; curY++; } selectedDay = null; build(); }
 function goToday() {
   const t = new Date(); curY = t.getFullYear(); curM = t.getMonth();
-  selectedDay = t.getDate(); build(); onSelectDay(selectedDay);
+  selectedDay = t.getDate(); build();
 }
+
 
 // =====================
 // CASH REGISTER
