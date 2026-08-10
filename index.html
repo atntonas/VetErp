@@ -776,15 +776,9 @@ async function onSelectDay(day) {
       end: ev.end.dateTime ? ev.end.dateTime.substring(11,16) : '',
       description: ev.description || ''
     }));
-    build(); renderEvents(events); 
+    renderEvents(events); build();
 
-    // ✅ Only update the selected day highlight, don't rebuild the whole grid
-    document.querySelectorAll('.day').forEach(el => el.classList.remove('selected'));
-    const allDays = document.querySelectorAll('.day');
-    const offset = new Date(curY, curM, 1).getDay();
-    const adjustedOffset = offset === 0 ? 6 : offset - 1;
-    const targetIndex = adjustedOffset + day - 1 + 7; // +7 for weekday headers
-    if (allDays[targetIndex]) allDays[targetIndex].classList.add('selected');
+  
 
   } catch(e) {
     document.getElementById('eventList').innerHTML = `<i style="color:red">Error: ${e.message}</i>`;
