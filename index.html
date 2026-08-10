@@ -1125,11 +1125,11 @@ async function sendVaccineReminder(petID, petName, ownerName, nextDate, btn) {
     if (row) {
       const cb = row.querySelector('input[type=checkbox]');
       if (cb) cb.checked = true;
-      row.style.background = '#e8f5e9'; btn.innerText = '✅ Sent';
+      row.style.background = '#e8f5e9'; 
     }
   } catch(e) {
     alert('Failed: ' + e.message);
-    btn.disabled = false; btn.innerText = '📧 Send';
+    btn.disabled = true; btn.innerText = '✅ Sent';
   }
 }
 
