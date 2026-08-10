@@ -1116,7 +1116,7 @@ function buildVaccineTable(list, isOverdue) {
   let html = `<table class="table" style="width:90%"><thead><tr><th>Pet</th><th>Owner</th><th>Last Vaccine</th><th>Next Due</th><th>Days</th><th>Reminded</th><th>Action</th></tr></thead><tbody>`;
   
   list.forEach(v => {
-    // Parse target date locally to calculate diff days
+    // Parse target date locally
     const [y, m, d] = v.nextDate.split('-').map(Number);
     const targetDate = new Date(y, m - 1, d);
     const diff = Math.round((targetDate - today) / 86400000);
@@ -1127,6 +1127,14 @@ function buildVaccineTable(list, isOverdue) {
       
     const rowColor = v.reminded ? 'background:#e8f5e9' : isOverdue ? 'background:#fff5f5' : '';
 
+    // ✅ FIX 1: If already reminded, render disabled "✅ Sent" button regardless of reload
+    let actionButton = '';
+    if (v.reminded) {
+      actionButton = `<button class="small" disabled style="background:#888;cursor:not-allowed;">✅ Sent</button>`;
+    } else if (diff <= 30) {
+      actionButton = `<button class="small green" onclick="sendVaccineReminder('${v.petID}','${v.petName}','${v.ownerName}','${v.nextDate}','${v.lastDate}',this)">📧 Send</button>`;
+    }
+
     html += `<tr style="${rowColor}" id="row-${v.petID}">
       <td><b>${v.petName}</b></td>
       <td>${v.ownerName}</td>
@@ -1136,9 +1144,7 @@ function buildVaccineTable(list, isOverdue) {
       <td style="text-align:center">
         <input type="checkbox" ${v.reminded ? 'checked' : ''} onchange="toggleReminder('${v.petID}','${v.lastDate}',this.checked,this)">
       </td>
-      <td>
-        ${diff <= 30 ? `<button class="small green" onclick="sendVaccineReminder('${v.petID}','${v.petName}','${v.ownerName}','${v.nextDate}','${v.lastDate}',this)">📧 Send</button>` : ''}
-      </td>
+      <td>${actionButton}</td>
     </tr>`;
   });
 
@@ -1149,17 +1155,36 @@ async function toggleReminder(petID, lastDate, reminded, checkbox) {
   const keyword = document.getElementById('vaccineType').value;
   const row = document.getElementById('row-' + petID);
   
-  if (row) row.style.background = reminded ? '#e8f5e9' : '';
+  if (row) {
+    row.style.background = reminded ? '#e8f5e9' : '';
+    
+    // ✅ FIX 2: Update button dynamically when checkbox is manually toggled
+    const btn = row.querySelector('button');
+    if (btn) {
+      if (reminded) {
+        btn.disabled = true;
+        btn.innerText = '✅ Sent';
+        btn.className = 'small';
+        btn.style.background = '#888';
+        btn.style.cursor = 'not-allowed';
+      } else {
+        btn.disabled = false;
+        btn.innerText = '📧 Send';
+        btn.className = 'small green';
+        btn.style.background = '';
+        btn.style.cursor = 'pointer';
+      }
+    }
+  }
   
   try { 
     await api('toggleReminder', { pet_id: petID, keyword, last_date: lastDate, reminded }); 
   } catch(e) { 
     console.error(e); 
-    if (checkbox) checkbox.checked = !reminded; // Rollback checkbox on error
+    if (checkbox) checkbox.checked = !reminded; // Rollback
   }
 }
 
-// ✅ Explicitly accepting lastDate as parameter
 async function sendVaccineReminder(petID, petName, ownerName, nextDate, lastDate, btn) {
   if (!confirm(`Send reminder email to ${ownerName} for ${petName}?`)) return;
   
@@ -1190,8 +1215,11 @@ async function sendVaccineReminder(petID, petName, ownerName, nextDate, lastDate
       last_date: lastDate
     });
 
+    // ✅ FIX 3: Disable button and set cursor properly upon sending
     btn.innerText = '✅ Sent'; 
+    btn.className = 'small';
     btn.style.background = '#888';
+    btn.style.cursor = 'not-allowed';
 
     if (row) {
       const cb = row.querySelector('input[type=checkbox]');
@@ -1200,12 +1228,10 @@ async function sendVaccineReminder(petID, petName, ownerName, nextDate, lastDate
     }
   } catch(e) {
     alert('Failed to send email: ' + e.message);
-    // ✅ FIX: Reset button state on failure
     btn.disabled = false; 
     btn.innerText = '📧 Send';
   }
 }
-
 // =====================
 // INIT
 // =====================
