@@ -1046,90 +1046,163 @@ async function loadVaccines() {
   document.getElementById('vaccinesList').innerHTML = '<i>Loading...</i>';
   try {
     const { medData, remData } = await api('getVaccines', { keyword });
-    if (!medData.length) { document.getElementById('vaccinesList').innerHTML = '<i>No vaccine records found.</i>'; return; }
+    if (!medData || !medData.length) { 
+      document.getElementById('vaccinesList').innerHTML = '<i>No vaccine records found.</i>'; 
+      return; 
+    }
 
+    // Find latest vaccine per pet
     const latestVaccine = {};
-    medData.forEach(r => { if (r.pet_id && r.date && (!latestVaccine[r.pet_id] || r.date > latestVaccine[r.pet_id])) latestVaccine[r.pet_id] = r.date; });
-    const reminders = {};
-    remData.forEach(r => { reminders[`${r.pet_id}|${r.last_date}`] = r.reminded; });
+    medData.forEach(r => { 
+      if (r.pet_id && r.date && (!latestVaccine[r.pet_id] || r.date > latestVaccine[r.pet_id])) {
+        latestVaccine[r.pet_id] = r.date;
+      }
+    });
 
-    const today = new Date(); today.setHours(0,0,0,0);
+    const reminders = {};
+    (remData || []).forEach(r => { 
+      reminders[`${r.pet_id}|${r.last_date}`] = r.reminded; 
+    });
+
     const result = [];
     Object.keys(latestVaccine).forEach(petID => {
-      const pet = petsData.find(p => p.id === petID); if (!pet) return;
+      const pet = petsData.find(p => p.id === petID); 
+      if (!pet) return;
+
       const owner = ownersData.find(o => o.id === pet.owner_id);
-      const lastDate = latestVaccine[petID];
-      const nextDate = new Date(lastDate); nextDate.setFullYear(nextDate.getFullYear()+1);
-      result.push({ petID, petName: pet.name, ownerName: owner ? owner.name : '', lastDate, nextDate: nextDate.toISOString().split('T')[0], reminded: reminders[`${petID}|${lastDate}`] || false });
+      const lastDate = latestVaccine[petID]; // String YYYY-MM-DD
+      
+      // ✅ Timezone-safe +1 year calculation
+      const [y, m, d] = lastDate.split('-');
+      const nextDate = `${parseInt(y) + 1}-${m}-${d}`;
+
+      result.push({ 
+        petID, 
+        petName: pet.name, 
+        ownerName: owner ? owner.name : '', 
+        lastDate, 
+        nextDate, 
+        reminded: reminders[`${petID}|${lastDate}`] || false 
+      });
     });
-    result.sort((a,b) => new Date(a.nextDate) - new Date(b.nextDate));
+
+    result.sort((a, b) => a.nextDate.localeCompare(b.nextDate));
     renderVaccines(result);
-  } catch(e) { document.getElementById('vaccinesList').innerHTML = '<i>Error loading vaccines</i>'; console.error(e); }
+  } catch(e) { 
+    document.getElementById('vaccinesList').innerHTML = '<i>Error loading vaccines</i>'; 
+    console.error(e); 
+  }
 }
 
 function renderVaccines(data) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  const overdue = data.filter(v => new Date(v.nextDate) < today);
-  const upcoming = data.filter(v => new Date(v.nextDate) >= today);
+  // Get today's local date in YYYY-MM-DD string format
+  const todayStr = new Date().toLocaleDateString('sv-SE'); // Gives YYYY-MM-DD format safely
+  
+  const overdue = data.filter(v => v.nextDate < todayStr);
+  const upcoming = data.filter(v => v.nextDate >= todayStr);
+
   let html = '';
   if (overdue.length) html += `<h3 style="color:#c0392b">⚠️ Overdue (${overdue.length})</h3>` + buildVaccineTable(overdue, true);
   if (upcoming.length) html += `<h3 style="color:#27ae60;margin-top:20px">✅ Upcoming (${upcoming.length})</h3>` + buildVaccineTable(upcoming, false);
   if (!html) html = '<i>No records found.</i>';
+  
   document.getElementById('vaccinesList').innerHTML = html;
 }
 
 function buildVaccineTable(list, isOverdue) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  let html = `<table class="table" style="width:90%"><thead><tr><th>Pet</th><th>Owner</th><th>Last Vaccine</th><th>Next Due</th><th>Days</th><th>Reminded</th><th></th></tr></thead><tbody>`;
+  const today = new Date(); 
+  today.setHours(0, 0, 0, 0);
+
+  let html = `<table class="table" style="width:90%"><thead><tr><th>Pet</th><th>Owner</th><th>Last Vaccine</th><th>Next Due</th><th>Days</th><th>Reminded</th><th>Action</th></tr></thead><tbody>`;
+  
   list.forEach(v => {
-    const diff = Math.round((new Date(v.nextDate) - today) / 86400000);
-    const diffText = isOverdue ? `<span style="color:#c0392b;font-weight:bold">${Math.abs(diff)} days overdue</span>` : `<span style="color:#27ae60">${diff} days</span>`;
+    // Parse target date locally to calculate diff days
+    const [y, m, d] = v.nextDate.split('-').map(Number);
+    const targetDate = new Date(y, m - 1, d);
+    const diff = Math.round((targetDate - today) / 86400000);
+
+    const diffText = isOverdue 
+      ? `<span style="color:#c0392b;font-weight:bold">${Math.abs(diff)} days overdue</span>` 
+      : `<span style="color:#27ae60">${diff} days</span>`;
+      
     const rowColor = v.reminded ? 'background:#e8f5e9' : isOverdue ? 'background:#fff5f5' : '';
+
     html += `<tr style="${rowColor}" id="row-${v.petID}">
-      <td><b>${v.petName}</b></td><td>${v.ownerName}</td><td>${v.lastDate}</td><td><b>${v.nextDate}</b></td><td>${diffText}</td>
-      <td style="text-align:center"><input type="checkbox" ${v.reminded?'checked':''} onchange="toggleReminder('${v.petID}','${v.lastDate}',this.checked,this)"></td>
-      <td>${diff<=30?`<button class="small green" onclick="sendVaccineReminder('${v.petID}','${v.petName}','${v.ownerName}','${v.nextDate}',this)">📧 Send</button>`:''}</td>
+      <td><b>${v.petName}</b></td>
+      <td>${v.ownerName}</td>
+      <td>${v.lastDate}</td>
+      <td><b>${v.nextDate}</b></td>
+      <td>${diffText}</td>
+      <td style="text-align:center">
+        <input type="checkbox" ${v.reminded ? 'checked' : ''} onchange="toggleReminder('${v.petID}','${v.lastDate}',this.checked,this)">
+      </td>
+      <td>
+        ${diff <= 30 ? `<button class="small green" onclick="sendVaccineReminder('${v.petID}','${v.petName}','${v.ownerName}','${v.nextDate}','${v.lastDate}',this)">📧 Send</button>` : ''}
+      </td>
     </tr>`;
   });
+
   return html + '</tbody></table>';
 }
 
 async function toggleReminder(petID, lastDate, reminded, checkbox) {
   const keyword = document.getElementById('vaccineType').value;
   const row = document.getElementById('row-' + petID);
+  
   if (row) row.style.background = reminded ? '#e8f5e9' : '';
-  try { await api('toggleReminder', { pet_id: petID, keyword, last_date: lastDate, reminded }); }
-  catch(e) { console.error(e); if(checkbox) checkbox.checked = !reminded; }
+  
+  try { 
+    await api('toggleReminder', { pet_id: petID, keyword, last_date: lastDate, reminded }); 
+  } catch(e) { 
+    console.error(e); 
+    if (checkbox) checkbox.checked = !reminded; // Rollback checkbox on error
+  }
 }
 
-async function sendVaccineReminder(petID, petName, ownerName, nextDate, btn) {
+// ✅ Explicitly accepting lastDate as parameter
+async function sendVaccineReminder(petID, petName, ownerName, nextDate, lastDate, btn) {
   if (!confirm(`Send reminder email to ${ownerName} for ${petName}?`)) return;
-  btn.disabled = true; btn.innerText = 'Sending...';
+  
+  btn.disabled = true; 
+  btn.innerText = 'Sending...';
+
   const pet = petsData.find(p => p.id === petID);
   const owner = pet ? ownersData.find(o => o.id === pet.owner_id) : null;
-  if (!owner || !owner.email) { alert('No email found for this owner'); btn.disabled=false; btn.innerText='📧 Send'; return; }
-  const keyword = document.getElementById('vaccineType').value;
 
-  // ✅ Get last_date from the table cell
+  if (!owner || !owner.email) { 
+    alert('No email address found for this owner.'); 
+    btn.disabled = false; 
+    btn.innerText = '📧 Send'; 
+    return; 
+  }
+
+  const keyword = document.getElementById('vaccineType').value;
   const row = document.getElementById('row-' + petID);
-  const lastDate = row ? row.cells[2].innerText : '';
 
   try {
     await api('sendVaccineReminder', {
       ownerEmail: owner.email,
-      ownerName, petName, nextDate, keyword,
-      pet_id: petID,      // ✅ pass pet_id
-      last_date: lastDate  // ✅ pass last_date
+      ownerName,
+      petName,
+      nextDate,
+      keyword,
+      pet_id: petID,
+      last_date: lastDate
     });
-    btn.innerText = '✅ Sent'; btn.style.background = '#888';
+
+    btn.innerText = '✅ Sent'; 
+    btn.style.background = '#888';
+
     if (row) {
       const cb = row.querySelector('input[type=checkbox]');
-      if (cb) cb.checked = true; btn.innerText = '✅ Sent';
+      if (cb) cb.checked = true;
       row.style.background = '#e8f5e9'; 
     }
   } catch(e) {
-    alert('Failed: ' + e.message);
-    btn.disabled = false; btn.innerText = '📧 Send';
+    alert('Failed to send email: ' + e.message);
+    // ✅ FIX: Reset button state on failure
+    btn.disabled = false; 
+    btn.innerText = '📧 Send';
   }
 }
 
