@@ -837,7 +837,7 @@ async function onSaveEvent() {
       await calProxy('POST', `${CAL_BASE}/events`, event);
       alert('✅ Event added'); 
     }
-     onClearForm(); onSelectDay(selectedDay);
+     onClearForm(); onSelectDay(selectedDay); build();
   } catch(e) { alert('Error: ' + e.message); }
 }
   
@@ -848,7 +848,7 @@ async function onDeleteEvent() {
   if (!confirm('Delete this event?')) return;
   try {
     await calProxy('DELETE', `${CAL_BASE}/events/${id}`);
-    alert('✅ Deleted'); onClearForm(); onSelectDay(selectedDay);
+    alert('✅ Deleted'); onClearForm(); onSelectDay(selectedDay); build();
   } catch(e) { alert('Error: ' + e.message); }
 }
 
