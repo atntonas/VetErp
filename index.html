@@ -986,12 +986,17 @@ async function saveReceipt() {
 
 document.getElementById('paymentMethod').addEventListener('change', function() {
   document.getElementById('cashChangeSection').style.display = this.value === 'Cash' ? 'block' : 'none';
+  // Reset when switching
+  document.getElementById('clientPayment').value = '';
+  document.getElementById('changeVal').textContent = '0.00';
 });
 
 document.getElementById('clientPayment').addEventListener('input', function() {
-  const total = parseFloat(document.getElementById('totVal').textContent) || 0;
+  const totEl = document.getElementById('totVal');
+  const total = parseFloat(totEl.innerText || totEl.textContent || '0') || 0;
   const paid = parseFloat(this.value) || 0;
-  document.getElementById('changeVal').textContent = paid >= total ? (paid - total).toFixed(2) : '0.00';
+  const change = paid - total;
+  document.getElementById('changeVal').textContent = change >= 0 ? change.toFixed(2) : '0.00';
 });
 
 function openReport() { document.getElementById('reportDate').valueAsDate = new Date(); document.getElementById('reportModal').style.display = 'block'; }
