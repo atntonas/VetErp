@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Veterinary EMR</title>
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Google Sign-In SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     * { box-sizing: border-box; }
@@ -17,7 +20,8 @@
     button.danger { background: #c0392b; color: white; border: none; }
     button.green { background: #4caf50; color: white; border: none; }
     button.small { padding: 6px 8px; font-size: 13px; }
-    .crm-header { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+    .crm-header { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 20px; }
+    .crm-header-left { display: flex; align-items: center; gap: 15px; }
     .crm-header img { height: 120px; width: auto; }
     .crm-header h1 { font-size: 28px; margin: 0; color: #2c3e50; }
     .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
@@ -48,8 +52,11 @@
 <body>
 
 <header class="crm-header">
-  <img src="https://imagizer.imageshack.com/img922/6610/49hxJr.png" alt="Clinic Logo">
-  <h1>Veterinary EMR</h1>
+  <div class="crm-header-left">
+    <img src="https://imagizer.imageshack.com/img922/6610/49hxJr.png" alt="Clinic Logo">
+    <h1>Veterinary EMR</h1>
+  </div>
+  <button class="danger" onclick="handleLogout()">🚪 Log Out</button>
 </header>
 
 <div>
@@ -258,20 +265,28 @@
 
 <script>
 // =====================
-// CONFIG — only public URLs here, no secrets
+// CONFIG — Public URLs & Supabase Auth Setup
 // =====================
-const EDGE_URL = 'https://rblsaavfuwhbgexfgbvt.supabase.co/functions/v1';
-const ANON_KEY = 'sb_publishable_71ARKZBjLO4_sbwfZCzh9Q_bi3bJ7ES';
+const SUPABASE_URL = 'https://rblsaavfuwhbgexfgbvt.supabase.co';
+const EDGE_URL = `${SUPABASE_URL}/functions/v1`;
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJibHNhYXZmdXdoYmdleGZnYnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MDcyODEsImV4cCI6MjEwMTE4MzI4MX0.sj73FEFAGu4NCs_eJzf_XfkTfUpXcb6g3ZnCYR1VKz4';
 const GOOGLE_CLIENT_ID = '817869412392-99t8tve1j5rf16u66lh03sa7lbmd011i.apps.googleusercontent.com';
 const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar';
 
+const supabaseAuth = supabase.createClient(SUPABASE_URL, ANON_KEY);
+let userAccessToken = null;
+
 // =====================
-// EDGE FUNCTION CALLER
+// EDGE FUNCTION CALLER (WITH SECURE USER JWT)
 // =====================
 async function api(action, payload = {}) {
   const res = await fetch(`${EDGE_URL}/api`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` },
+    headers: { 
+      'Content-Type': 'application/json', 
+      'apikey': ANON_KEY, 
+      'Authorization': `Bearer ${userAccessToken}` 
+    },
     body: JSON.stringify({ action, payload })
   });
   const data = await res.json();
@@ -286,7 +301,7 @@ async function calProxy(method, url, body = null) {
     headers: {
       'Content-Type': 'application/json',
       'apikey': ANON_KEY,
-      'Authorization': `Bearer ${ANON_KEY}`,
+      'Authorization': `Bearer ${userAccessToken}`,
       'x-google-token': googleToken
     },
     body: JSON.stringify({ method, url, body })
@@ -294,6 +309,15 @@ async function calProxy(method, url, body = null) {
   const data = await res.json();
   if (data.error) throw new Error(data.error);
   return data;
+}
+
+// =====================
+// LOGOUT
+// =====================
+async function handleLogout() {
+  if (!confirm("Log out of system?")) return;
+  await supabaseAuth.auth.signOut();
+  window.location.href = "login.html";
 }
 
 // =====================
@@ -624,7 +648,7 @@ async function uploadLabFile() {
         headers: {
           'Content-Type': 'application/json',
           'apikey': ANON_KEY,
-          'Authorization': `Bearer ${ANON_KEY}`,
+          'Authorization': `Bearer ${userAccessToken}`,
           'x-google-token': googleToken
         },
         body: JSON.stringify({ fileName: file.name, mimeType: file.type, fileBase64: base64, petId: selectedPetID })
@@ -728,7 +752,6 @@ async function build() {
   }
   renderGrid(counts);
 
-  // ✅ After grid is rebuilt, re-render events for selected day if one is selected
   if (selectedDay) {
     const ds = `${curY}-${pad(curM+1)}-${pad(selectedDay)}`;
     document.getElementById('evDate').value = ds;
@@ -763,7 +786,6 @@ function renderGrid(counts) {
     grid.appendChild(el);
   }
 
-  // ✅ Only reset eventList text if no day is selected
   if (!selectedDay) {
     document.getElementById('eventList').innerHTML = googleToken
       ? '<i>Select a day to see events</i>'
@@ -771,7 +793,6 @@ function renderGrid(counts) {
   }
 }
 
-// ✅ Separated event loading from day selection
 async function loadEventsForDay(day) {
   const ds = `${curY}-${pad(curM+1)}-${pad(day)}`;
   document.getElementById('eventList').innerHTML = '<i>Loading...</i>';
@@ -797,7 +818,6 @@ async function onSelectDay(day) {
   const ds = `${curY}-${pad(curM+1)}-${pad(day)}`;
   document.getElementById('evDate').value = ds;
 
-  // ✅ Update selected highlight without rebuilding grid
   document.querySelectorAll('#calendarGrid .day').forEach(el => el.classList.remove('selected'));
   const allCells = document.querySelectorAll('#calendarGrid .day');
   const firstDay = new Date(curY, curM, 1).getDay();
@@ -855,7 +875,7 @@ async function onSaveEvent() {
       alert('✅ Event added');
     }
     onClearForm();
-    await build(); // ✅ rebuild grid dots AND re-render events
+    await build();
   } catch(e) { alert('Error: ' + e.message); }
 }
 
@@ -868,7 +888,7 @@ async function onDeleteEvent() {
     await calProxy('DELETE', `${CAL_BASE}/events/${id}`);
     alert('✅ Deleted');
     onClearForm();
-    await build(); // ✅ rebuild grid dots AND re-render events
+    await build();
   } catch(e) { alert('Error: ' + e.message); }
 }
 
@@ -882,7 +902,6 @@ function goToday() {
   const t = new Date(); curY = t.getFullYear(); curM = t.getMonth();
   selectedDay = t.getDate(); build();
 }
-
 
 // =====================
 // CASH REGISTER
@@ -1051,7 +1070,6 @@ async function loadVaccines() {
       return; 
     }
 
-    // Find latest vaccine per pet
     const latestVaccine = {};
     medData.forEach(r => { 
       if (r.pet_id && r.date && (!latestVaccine[r.pet_id] || r.date > latestVaccine[r.pet_id])) {
@@ -1070,9 +1088,8 @@ async function loadVaccines() {
       if (!pet) return;
 
       const owner = ownersData.find(o => o.id === pet.owner_id);
-      const lastDate = latestVaccine[petID]; // String YYYY-MM-DD
+      const lastDate = latestVaccine[petID];
       
-      // ✅ Timezone-safe +1 year calculation
       const [y, m, d] = lastDate.split('-');
       const nextDate = `${parseInt(y) + 1}-${m}-${d}`;
 
@@ -1095,8 +1112,7 @@ async function loadVaccines() {
 }
 
 function renderVaccines(data) {
-  // Get today's local date in YYYY-MM-DD string format
-  const todayStr = new Date().toLocaleDateString('sv-SE'); // Gives YYYY-MM-DD format safely
+  const todayStr = new Date().toLocaleDateString('sv-SE');
   
   const overdue = data.filter(v => v.nextDate < todayStr);
   const upcoming = data.filter(v => v.nextDate >= todayStr);
@@ -1116,7 +1132,6 @@ function buildVaccineTable(list, isOverdue) {
   let html = `<table class="table" style="width:90%"><thead><tr><th>Pet</th><th>Owner</th><th>Last Vaccine</th><th>Next Due</th><th>Days</th><th>Reminded</th><th>Action</th></tr></thead><tbody>`;
   
   list.forEach(v => {
-    // Parse target date locally
     const [y, m, d] = v.nextDate.split('-').map(Number);
     const targetDate = new Date(y, m - 1, d);
     const diff = Math.round((targetDate - today) / 86400000);
@@ -1127,7 +1142,6 @@ function buildVaccineTable(list, isOverdue) {
       
     const rowColor = v.reminded ? 'background:#e8f5e9' : isOverdue ? 'background:#fff5f5' : '';
 
-    // ✅ FIX 1: If already reminded, render disabled "✅ Sent" button regardless of reload
     let actionButton = '';
     if (v.reminded) {
       actionButton = `<button class="small" disabled style="background:#888;cursor:not-allowed;">✅ Sent</button>`;
@@ -1158,7 +1172,6 @@ async function toggleReminder(petID, lastDate, reminded, checkbox) {
   if (row) {
     row.style.background = reminded ? '#e8f5e9' : '';
     
-    // ✅ FIX 2: Update button dynamically when checkbox is manually toggled
     const btn = row.querySelector('button');
     if (btn) {
       if (reminded) {
@@ -1181,7 +1194,7 @@ async function toggleReminder(petID, lastDate, reminded, checkbox) {
     await api('toggleReminder', { pet_id: petID, keyword, last_date: lastDate, reminded }); 
   } catch(e) { 
     console.error(e); 
-    if (checkbox) checkbox.checked = !reminded; // Rollback
+    if (checkbox) checkbox.checked = !reminded;
   }
 }
 
@@ -1215,7 +1228,6 @@ async function sendVaccineReminder(petID, petName, ownerName, nextDate, lastDate
       last_date: lastDate
     });
 
-    // ✅ FIX 3: Disable button and set cursor properly upon sending
     btn.innerText = '✅ Sent'; 
     btn.className = 'small';
     btn.style.background = '#888';
@@ -1232,10 +1244,24 @@ async function sendVaccineReminder(petID, petName, ownerName, nextDate, lastDate
     btn.innerText = '📧 Send';
   }
 }
+
 // =====================
-// INIT
+// AUTH GUARD & INIT
 // =====================
 window.addEventListener('DOMContentLoaded', async () => {
+  // 1. Verify user session
+  const { data: { session } } = await supabaseAuth.auth.getSession();
+  
+  if (!session) {
+    // Force redirect to login page if unauthenticated
+    window.location.href = 'login.html';
+    return;
+  }
+
+  // 2. Save current user token for secured Edge API calls
+  userAccessToken = session.access_token;
+
+  // 3. Load initial data & load default section
   await loadAll();
   showSection('agenda');
 });
