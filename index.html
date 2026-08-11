@@ -1007,31 +1007,84 @@ function closeReport() { document.getElementById('reportModal').style.display = 
 async function generateReport() {
   const d = document.getElementById('reportDate').value;
   if (!d) { alert('Select a date'); return; }
+
   try {
     const receipts = await api('getReceipts', { date: d });
-    if (!receipts.length) { document.getElementById('reportOutput').innerHTML = '<i>No receipts for this date</i>'; return; }
+    const output = document.getElementById('reportOutput');
+
+    if (!receipts.length) { 
+      output.innerHTML = '<i>No receipts for this date</i>'; 
+      return; 
+    }
+
     let revenue = 0, cash = 0, card = 0, vat6 = 0, vat13 = 0, vat24 = 0;
+
+    // 1. Calculate Totals & Breakdown
     receipts.forEach(r => {
-      revenue += parseFloat(r.total) || 0;
-      if ((r.method||'').trim() === 'Cash') cash += parseFloat(r.total) || 0; else card += parseFloat(r.total) || 0;
+      const recTotal = parseFloat(r.total) || 0;
+      revenue += recTotal;
+
+      if ((r.method || '').trim() === 'Cash') {
+        cash += recTotal;
+      } else {
+        card += recTotal;
+      }
+
       safeStr(r.items).split('\n').forEach(line => {
-        const vm = line.match(/\(VAT (\d+)%\)/); const tm = line.match(/= ([0-9.]+)/);
+        const vm = line.match(/\(VAT (\d+)%\)/); 
+        const tm = line.match(/= ([0-9.]+)/);
         if (!vm || !tm) return;
-        const rate = parseInt(vm[1]); const lt = parseFloat(tm[1]);
-        if (rate === 6) vat6 += lt * 0.06/1.06;
-        else if (rate === 13) vat13 += lt * 0.13/1.13;
-        else if (rate === 24) vat24 += lt * 0.24/1.24;
+
+        const rate = parseInt(vm[1], 10); 
+        const lineTotal = parseFloat(tm[1]);
+
+        if (rate === 6) vat6 += lineTotal * (0.06 / 1.06);
+        else if (rate === 13) vat13 += lineTotal * (0.13 / 1.13);
+        else if (rate === 24) vat24 += lineTotal * (0.24 / 1.24);
       });
     });
-    document.getElementById('reportOutput').innerHTML = `
-      <h3>Report for ${d}</h3>
+
+    // 2. Display Report in UI
+    output.innerHTML = `
+      <h3>Report for ${escapeHTML(d)}</h3>
       <p><strong>Total receipts:</strong> ${receipts.length}</p>
       <p><strong>Revenue:</strong> €${revenue.toFixed(2)}</p>
       <h4>VAT Breakdown</h4>
-      <p>6%: €${vat6.toFixed(2)}</p><p>13%: €${vat13.toFixed(2)}</p><p>24%: €${vat24.toFixed(2)}</p>
+      <p>6%: €${vat6.toFixed(2)}</p>
+      <p>13%: €${vat13.toFixed(2)}</p>
+      <p>24%: €${vat24.toFixed(2)}</p>
       <h4>Payment Breakdown</h4>
-      <p>Cash: €${cash.toFixed(2)}</p><p>Card: €${card.toFixed(2)}</p>`;
-  } catch(e) { alert('Error: ' + e.message); }
+      <p>Cash: €${cash.toFixed(2)}</p>
+      <p>Card: €${card.toFixed(2)}</p>`;
+
+    // 3. Prepare Supabase Payload
+    const reportPayload = {
+      report_date: d,
+      total_receipts: receipts.length,
+      revenue: parseFloat(revenue.toFixed(2)),
+      cash_total: parseFloat(cash.toFixed(2)),
+      card_total: parseFloat(card.toFixed(2)),
+      vat_6: parseFloat(vat6.toFixed(2)),
+      vat_13: parseFloat(vat13.toFixed(2)),
+      vat_24: parseFloat(vat24.toFixed(2)),
+      updated_at: new Date().toISOString()
+    };
+
+    // --- OPTION A: Using direct Supabase JS SDK ---
+    const { error } = await supabase
+      .from('daily_reports')
+      .upsert(reportPayload, { onConflict: 'report_date' });
+
+    if (error) throw error;
+
+    // --- OPTION B: Using your custom api() wrapper (if implemented backend-side) ---
+    // await api('saveDailyReport', reportPayload);
+
+    output.innerHTML += `<p style="color: green; margin-top: 10px;"><strong>✅ Daily report saved to Supabase!</strong></p>`;
+
+  } catch(e) { 
+    alert('Error processing report: ' + e.message); 
+  }
 }
 
 // =====================
