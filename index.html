@@ -49,8 +49,8 @@
     /* ── LOGO STYLING ── */
     .login-logo {
       display: block;
-      max-width: 120px;
-      max-height: 120px;
+      max-width: 130px;
+      max-height: 130px;
       margin: 0 auto 18px auto;
       object-fit: contain;
     }
@@ -230,7 +230,6 @@
   <!-- 1. LOGIN SCREEN WITH LOGO -->
   <div id="loginScreen" class="login-container">
     <div class="login-card">
-      <!-- REPLACE 'logo.png' WITH YOUR LOGO IMAGE FILE OR URL -->
       <img src="https://imagizer.imageshack.com/img922/6610/49hxJr.png" alt="Clinic Logo" class="login-logo" onerror="this.style.display='none';" />
       
       <h2>🐾 Clinic Login</h2>
@@ -277,24 +276,28 @@
   </div>
 
   <script>
-    // ── CONFIGURATION (UPDATE THESE VALUES) ──
+    // ── CONFIGURATION (UPDATE WITH YOUR SUPABASE DETAILS) ──
     const SUPABASE_URL = "https://rblsaavfuwhbgexfgbvt.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_71ARKZBjLO4_sbwfZCzh9Q_bi3bJ7ES";
     const clinic-api = "https://rblsaavfuwhbgexfgbvt.supabase.co/functions/v1/api";
     const calendar-proxy = "https://rblsaavfuwhbgexfgbvt.supabase.co/functions/v1/calendar-proxy";
     const drive-upload = "https://rblsaavfuwhbgexfgbvt.supabase.co/functions/v1/drive-upload";
     
+
     const supabaseAuth = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let petsData = [];
     let ownersData = [];
 
-    // ── API CALL HELPER ──
-    async function api(action, payload = {}) {
+    // ── DYNAMIC EDGE FUNCTION API ROUTER ──
+    // Works for: 'clinic-api', 'drive-upload', 'calendar-proxy'
+    async function api(functionName, action, payload = {}) {
       const { data: { session } } = await supabaseAuth.auth.getSession();
       const token = session ? session.access_token : SUPABASE_ANON_KEY;
 
-      const res = await fetch(EDGE_FUNCTION_URL, {
+      const endpointUrl = `${SUPABASE_URL}/functions/v1/${functionName}`;
+
+      const res = await fetch(endpointUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -304,9 +307,14 @@
       });
 
       const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Server request failed');
+      if (!res.ok || data.error) throw new Error(data.error || `Error from ${functionName}`);
       return data;
     }
+
+    // ── CONVENIENCE WRAPPERS FOR YOUR 3 EDGE FUNCTIONS ──
+    const clinicApi = (action, payload) => api('clinic-api', action, payload);
+    const driveApi = (action, payload) => api('drive-upload', action, payload);
+    const calendarApi = (action, payload) => api('calendar-proxy', action, payload);
 
     // ── AUTHENTICATION MANAGEMENT ──
     document.addEventListener("DOMContentLoaded", async () => {
@@ -364,21 +372,21 @@
 
     async function initialDataLoad() {
       try {
-        petsData = await api('getPets') || [];
-        ownersData = await api('getOwners') || [];
+        petsData = await clinicApi('getPets') || [];
+        ownersData = await clinicApi('getOwners') || [];
         loadVaccines();
       } catch(e) {
         console.error('Failed to pre-load pets/owners:', e);
       }
     }
 
-    // ── VACCINE LOGIC ──
+    // ── VACCINE LOGIC (USING CLINIC-API) ──
     async function loadVaccines() {
       const keyword = document.getElementById('vaccineType').value;
       document.getElementById('vaccinesList').innerHTML = '<i>Loading vaccine records...</i>';
       
       try {
-        const { medData, remData } = await api('getVaccines', { keyword });
+        const { medData, remData } = await clinicApi('getVaccines', { keyword });
         if (!medData || !medData.length) { 
           document.getElementById('vaccinesList').innerHTML = '<i>No vaccine records found for ' + keyword + '.</i>'; 
           return; 
@@ -505,7 +513,7 @@
       }
       
       try { 
-        await api('toggleReminder', { pet_id: petID, keyword, last_date: lastDate, reminded }); 
+        await clinicApi('toggleReminder', { pet_id: petID, keyword, last_date: lastDate, reminded }); 
       } catch(e) { 
         console.error(e); 
         if (checkbox) checkbox.checked = !reminded;
@@ -532,7 +540,7 @@
       const row = document.getElementById('row-' + petID);
 
       try {
-        await api('sendVaccineReminder', {
+        await clinicApi('sendVaccineReminder', {
           ownerEmail: owner.email,
           ownerName,
           petName,
@@ -558,6 +566,20 @@
         btn.innerText = '📧 Send';
       }
     }
+
+    // ── EXAMPLE USAGE FOR YOUR OTHER 2 EDGE FUNCTIONS ──
+    // You can call driveApi() and calendarApi() anywhere in your codebase like this:
+    /*
+      async function uploadFileToDrive(fileData) {
+        const result = await driveApi('uploadFile', { file: fileData });
+        console.log('Uploaded to Drive:', result);
+      }
+
+      async function syncAppointments(events) {
+        const result = await calendarApi('syncCalendar', { events });
+        console.log('Calendar synced:', result);
+      }
+    */
   </script>
 </body>
 </html>
