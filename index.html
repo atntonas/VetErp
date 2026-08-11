@@ -982,6 +982,7 @@ async function saveReceipt() {
     items = []; renderItems(); updateTotals(); renderPreview();
     document.getElementById('custName').value = '';
     document.getElementById('clientPayment').value = '';
+    document.getElementById('changeVal').textContent = '0.00';
   } catch(e) { alert('Error: ' + e.message); }
 }
 
