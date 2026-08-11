@@ -1,1244 +1,561 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Veterinary EMR</title>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Veterinary Clinic Management</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
   <style>
-    * { box-sizing: border-box; }
-    section { display: none; margin-bottom: 20px; }
-    body { font-family: Arial, sans-serif; margin: 0; padding: 14px; background: #ffffff; color: #111; }
-    input, select { width: 50%; padding: 8px; font-size: 18px; border: 1px solid #ddd; border-radius: 8px; background: #fff; margin-top: 6px; }
-    textarea { width: 50%; height: 80px; padding: 8px; font-size: 18px; border: 1px solid #ddd; border-radius: 8px; margin-top: 6px; }
-    button { padding: 6px 10px; margin: 4px 2px; font-size: 18px; border-radius: 6px; border: 1px solid #d6e2f0; background: #f2f7fc; color: #345; cursor: pointer; transition: 0.2s ease; }
-    button:hover { background: #e6f0fb; transform: translateY(-1px); }
-    button.primary { background: #111; color: #fff; border: none; padding: 10px; border-radius: 8px; }
-    button.danger { background: #c0392b; color: white; border: none; }
-    button.green { background: #4caf50; color: white; border: none; }
-    button.small { padding: 6px 8px; font-size: 13px; }
-    .crm-header { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
-    .crm-header img { height: 120px; width: auto; }
-    .crm-header h1 { font-size: 28px; margin: 0; color: #2c3e50; }
-    .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
-    .grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; margin-top: 8px; }
-    .day { background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #e6e6e6; min-height: 60px; cursor: pointer; }
-    .day:hover { background: #f0f4ff; }
-    .day.today { box-shadow: 0 0 0 3px rgba(99,102,241,0.3); }
-    .day.selected { background: #e8f0fe; }
-    .dots { margin-top: 8px; color: #7e22ce; font-size: 14px; }
-    .event { background: #f8f9ff; padding: 10px; border-radius: 8px; border: 1px solid #e0e4ff; margin-bottom: 8px; }
-    .event .meta { font-size: 12px; color: #666; margin-top: 4px; }
-    .row { display: flex; gap: 8px; }
-    .table { width: 80%; border-collapse: collapse; margin-top: 12px; }
-    .table th, .table td { border: 1px solid #ccc; padding: 6px; text-align: left; }
-    .preview-box { border: 1px solid #aaa; padding: 10px; margin-top: 16px; background: #fafafa; }
-    .autocomplete-box { position: relative; }
-    .drop { background: white; border: 1px solid #ddd; border-radius: 6px; max-height: 150px; overflow-y: auto; z-index: 100; }
-    .drop div { padding: 6px 8px; cursor: pointer; border-bottom: 1px solid #eee; }
-    .drop div:hover { background: #f0f0f0; }
-    .note-item { border-bottom: 1px solid #ddd; font-size: 18px; padding: 6px 0; display: flex; justify-content: space-between; gap: 8px; }
-    .gcal-signin { display:inline-flex; align-items:center; gap:8px; background:#4285f4; color:white; border:none; padding:8px 16px; border-radius:6px; font-size:15px; cursor:pointer; }
-    .gcal-signin:hover { background:#3367d6; transform:none; }
-    .gcal-signout { background:#999; color:white; border:none; padding:6px 10px; border-radius:6px; font-size:13px; cursor:pointer; }
-    .status-ok { color: #27ae60; font-size: 13px; }
-    #cashNameDrop { position: relative; }
+    /* ── BASE STYLES ── */
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f4f6f9;
+      color: #333;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    /* ── PERFECTLY CENTERED LOGIN SCREEN ── */
+    .login-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      width: 100vw;
+      background: #2c3e50;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 9999;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: #ffffff;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+      width: 100%;
+      max-width: 380px;
+      text-align: left;
+    }
+
+    /* ── LOGO STYLING ── */
+    .login-logo {
+      display: block;
+      max-width: 120px;
+      max-height: 120px;
+      margin: 0 auto 18px auto;
+      object-fit: contain;
+    }
+
+    .login-card h2 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      color: #2c3e50;
+      font-size: 24px;
+      text-align: center;
+    }
+
+    .login-card p {
+      color: #7f8c8d;
+      font-size: 14px;
+      margin-bottom: 25px;
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      color: #34495e;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-group input:focus {
+      border-color: #27ae60;
+      box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.15);
+    }
+
+    .login-card button {
+      width: 100%;
+      padding: 12px;
+      background: #27ae60;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 10px;
+    }
+
+    .login-card button:hover {
+      background: #219150;
+    }
+
+    .error-msg {
+      color: #e74c3c;
+      font-size: 13px;
+      margin-top: 15px;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    /* ── APP HEADER & LAYOUT ── */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 30px;
+      background: #2c3e50;
+      color: white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    header h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .logout-btn {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .logout-btn:hover {
+      background: #c0392b;
+    }
+
+    main {
+      padding: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .controls-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .controls-card select {
+      padding: 9px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 15px;
+      outline: none;
+      background: white;
+    }
+
+    /* ── TABLES & BUTTONS ── */
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+    }
+
+    .table th, .table td {
+      padding: 14px 18px;
+      text-align: left;
+      border-bottom: 1px solid #edf2f7;
+    }
+
+    .table th {
+      background: #f8fafc;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    button.small {
+      padding: 7px 14px;
+      font-size: 13px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      color: white;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+
+    button.green {
+      background: #27ae60;
+    }
+
+    button.green:hover {
+      background: #219150;
+    }
   </style>
 </head>
 <body>
 
-<header class="crm-header">
-  <img src="https://imagizer.imageshack.com/img922/6610/49hxJr.png" alt="Clinic Logo">
-  <h1>Veterinary EMR</h1>
-</header>
+  <!-- 1. LOGIN SCREEN WITH LOGO -->
+  <div id="loginScreen" class="login-container">
+    <div class="login-card">
+      <!-- REPLACE 'logo.png' WITH YOUR LOGO IMAGE FILE OR URL -->
+      <img src="https://imagizer.imageshack.com/img922/6610/49hxJr.png" alt="Clinic Logo" class="login-logo" onerror="this.style.display='none';" />
+      
+      <h2>🐾 Clinic Login</h2>
+      <p>Enter your credentials to access the clinic app.</p>
+      
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="admin@clinic.com" required />
+      </div>
 
-<div>
-  <button id="btnOwner">Add Owner</button>
-  <button id="btnPet">Add Pet</button>
-  <button id="btnMedical">Add Medical Record</button>
-  <button id="btnSearch">Search</button>
-  <button id="btnAgenda">Agenda</button>
-  <button id="btnCash">Cash Register</button>
-  <button id="btnNotes">Notes</button>
-  <button id="btnVaccines">Vaccines 💉</button>
-</div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" required />
+      </div>
 
-<!-- OWNER SECTION -->
-<section id="owner-section">
-  <h3>✏️ Edit Owner</h3>
-  <input id="editOwnerSearch" placeholder="Type owner name..." autocomplete="off">
-  <div id="editOwnerDrop" class="drop" style="display:none;width:50%"></div>
-  <input type="hidden" id="editOwnerID">
-  <input id="ownerName" placeholder="Name">
-  <input id="ownerPhone" placeholder="Phone">
-  <input id="ownerEmail" placeholder="Email">
-  <input id="ownerAddress" placeholder="Address">
-  <br><br>
-  <button onclick="saveOwnerEdit()">💾 Save Changes</button>
-  <button class="danger" onclick="deleteOwner()">🗑️ Delete Owner</button>
-  <hr>
-  <h3>👥 Add Owner</h3>
-  <input id="newOwnerName" placeholder="Name">
-  <input id="newOwnerPhone" placeholder="Phone">
-  <input id="newOwnerEmail" placeholder="Email">
-  <input id="newOwnerAddress" placeholder="Address">
-  <br><br>
-  <button onclick="addOwner()">➕ Add Owner</button>
-</section>
-
-<!-- PET SECTION -->
-<section id="pet-section">
-  <h3>✏️ Edit Pet</h3>
-  <input id="editPetSearch" placeholder="Type pet name..." autocomplete="off">
-  <div id="editPetDrop" class="drop" style="display:none;width:50%"></div>
-  <input type="hidden" id="editPetID">
-  <input id="editPetName" placeholder="Pet Name">
-  <input id="editPetOwner" oninput="searchOwnersForEdit()" placeholder="Type owner name...">
-  <div id="editOwnerDrop2" class="drop" style="display:none;width:50%"></div>
-  <input id="editMicrochipID" placeholder="Microchip ID">
-  <select id="editSpecies"><option value="">Species</option><option>DOG</option><option>CAT</option></select>
-  <select id="editSex"><option value="">Sex</option><option>MALE</option><option>FEMALE</option></select>
-  <input id="editBirthdate" type="date">
-  <br><br>
-  <button onclick="savePetEdit()">💾 Save Changes</button>
-  <button class="danger" onclick="deletePet()">🗑️ Delete Pet</button>
-  <hr>
-  <h3>🐾 Add Pet</h3>
-  <input id="petName" placeholder="Pet Name">
-  <input id="petOwners" oninput="searchOwners()" placeholder="Type owner name...">
-  <div id="ownerDrop" class="drop" style="display:none;width:50%"></div>
-  <input id="microchipID" placeholder="Microchip ID">
-  <select id="species"><option value="">Species</option><option>DOG</option><option>CAT</option></select>
-  <select id="sex"><option value="">Sex</option><option>MALE</option><option>FEMALE</option></select>
-  <input id="birthdate" type="date">
-  <br><br>
-  <button onclick="addPet()">➕ Add Pet</button>
-</section>
-
-<!-- MEDICAL SECTION -->
-<section id="medical-section">
-  <h3>🩺 Add Medical Record</h3>
-  <input id="medicalPetInput" oninput="searchPets()" placeholder="Type pet name...">
-  <div id="petDrop" class="drop" style="display:none;width:50%"></div>
-  <input id="recordDate" type="date">
-  <input id="description" placeholder="Description" autocomplete="off">
-  <div id="descDrop" class="drop" style="display:none;width:50%"></div>
-  <input id="treatment" placeholder="Treatment">
-  <input id="vetNotes" placeholder="Vet Notes">
-  <br><br>
-  <button onclick="addMedicalRecord()">➕ Add Record</button>
-
-  <h4>🔬🩸 Attach Lab Results</h4>
-  <div id="driveAuthSection">
-    <p style="color:#666;font-size:14px">Sign in with Google to upload lab files:</p>
-    <button class="gcal-signin" onclick="signInGoogle()">🔑 Sign in with Google</button>
+      <button id="loginBtn" onclick="handleLogin()">Log In</button>
+      <div id="loginError" class="error-msg"></div>
+    </div>
   </div>
-  <div id="driveUploadSection" style="display:none">
-    <p class="status-ok">✅ Connected to Google</p>
-    <input type="file" id="labFile" accept=".pdf,.jpg,.jpeg,.png">
-    <button class="green" onclick="uploadLabFile()">📤 Upload to Drive</button>
-    <button class="gcal-signout" onclick="signOutGoogle()">Sign out</button>
+
+  <!-- 2. MAIN APP SCREEN -->
+  <div id="appScreen" style="display: none;">
+    <header>
+      <h2>🏥 Veterinary Clinic Management</h2>
+      <button class="logout-btn" onclick="handleLogout()">🚪 Log Out</button>
+    </header>
+
+    <main>
+      <div class="controls-card">
+        <label for="vaccineType"><b>Select Vaccine Type:</b></label>
+        <select id="vaccineType" onchange="loadVaccines()">
+          <option value="DHPPI">DHPPI / DHPPi</option>
+          <option value="Rabies">Rabies</option>
+          <option value="Leptospirosis">Leptospirosis</option>
+          <option value="Bordetella">Bordetella</option>
+          <option value="Feligen">Feligen</option>
+          <option value="Tricat">Tricat</option>
+        </select>
+        <button class="small green" onclick="loadVaccines()">🔄 Refresh</button>
+      </div>
+
+      <div id="vaccinesList"><i>Select a vaccine to load records...</i></div>
+    </main>
   </div>
-  <div id="uploadStatus" style="margin-top:10px"></div>
-</section>
 
-<!-- SEARCH SECTION -->
-<section id="search-section">
-  <h3>🔍 Search Owner or Pet</h3>
-  <input id="searchInput" placeholder="Type pet or owner name..." autocomplete="off">
-  <div id="searchDrop" class="drop" style="display:none;width:50%"></div>
-  <div id="searchInfo" style="margin-top:12px"></div>
-</section>
+  <script>
+    // ── CONFIGURATION (UPDATE THESE VALUES) ──
+    const SUPABASE_URL = "YOUR_SUPABASE_URL";
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+    const EDGE_FUNCTION_URL = "YOUR_EDGE_FUNCTION_URL";
 
-<!-- AGENDA SECTION -->
-<section id="agenda-section">
-  <h2>📅 Calendar App</h2>
-  <div class="controls">
-    <button class="small" onclick="prevMonth()">‹ Prev</button>
-    <button class="small" onclick="goToday()">Today</button>
-    <button class="small" onclick="nextMonth()">Next ›</button>
-    <span id="calAuthStatus">
-      <button class="gcal-signin" onclick="signInGoogle()">🔑 Sign in with Google</button>
-    </span>
-  </div>
-  <div id="monthTitle" style="font-weight:700;font-size:18px;margin:8px 0"></div>
-  <div class="grid" id="calendarGrid"></div>
-  <hr style="margin:12px 0">
-  <div id="eventList"><i>Select a day to see events</i></div>
-  <hr style="margin:12px 0">
-  <h3 style="margin:6px 0">➕ Add / Edit Event</h3>
-  <input id="evId" type="hidden">
-  <input id="evTitle" placeholder="Title">
-  <div class="row">
-    <input id="evDate" type="date">
-    <input id="evStart" type="time">
-    <input id="evEnd" type="time">
-  </div>
-  <textarea id="evDesc" placeholder="Description"></textarea>
-  <div style="display:flex;gap:8px;margin-top:8px">
-    <button class="primary" onclick="onSaveEvent()">Save</button>
-    <button onclick="onClearForm()">Clear</button>
-    <button style="background:#fff;border:1px solid #f44336;color:#f44336" onclick="onDeleteEvent()">🗑️ Delete</button>
-  </div>
-</section>
+    const supabaseAuth = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-<!-- CASH SECTION -->
-<section id="cash-section">
-  <h2>🧾 Cash Register</h2>
-  <label><b>Customer:</b></label>
-  <input id="custName" placeholder="Type owner name..." autocomplete="off">
-  <div id="custDrop" class="drop" style="display:none;width:50%"></div>
-  <div style="margin-top:8px">
-    <label><b>Payment:</b></label>
-    <select id="paymentMethod">
-      <option value="Card">Card</option>
-      <option value="Cash">Cash</option>
-    </select>
-  </div>
-  <hr>
-  <h3>Add Item</h3>
-  <div class="autocomplete-box">
-    <input id="itemSearch" placeholder="Item name…" style="width:200px" oninput="onItemSearch()">
-    <div id="itemDrop" class="drop" style="display:none;width:200px"></div>
-  </div>
-  <input id="itemPrice" placeholder="Price" type="number" step="0.01" style="width:100px">
-  <input id="itemQty" type="number" value="1" style="width:70px">
-  <select id="itemVAT">
-    <option value="0.24">24% VAT</option>
-    <option value="0.13">13% VAT</option>
-    <option value="0.06">6% VAT</option>
-    <option value="0">0% VAT</option>
-  </select>
-  <button onclick="addItem()">➕ Add</button>
-  <table class="table" id="itemsTable">
-    <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>VAT</th><th>Total</th><th></th></tr></thead>
-    <tbody></tbody>
-  </table>
-  <h3>Totals</h3>
-  <div>Subtotal: <span id="subVal">0.00</span><br>VAT: <span id="vatVal">0.00</span><br><b>Total: <span id="totVal">0.00</span></b></div>
-  <hr>
-  <h3>Receipt Preview</h3>
-  <div class="preview-box" id="receiptPreview">No items</div>
-  <div id="cashChangeSection" style="display:none">
-    <label>Client Payment</label>
-    <input type="number" id="clientPayment" step="0.01" placeholder="e.g. 20.00">
-    <p><b>Change:</b> <span id="changeVal">0.00</span></p>
-  </div>
-  <br>
-  <button class="green" onclick="saveReceipt()">💾 Save Receipt</button>
-  <button class="primary" onclick="openReport()">📊 Daily Report</button>
-  <div id="reportModal" style="display:none;margin-top:12px;padding:12px;border:1px solid #ddd;border-radius:8px">
-    <h2>📅 Daily Report</h2>
-    <input type="date" id="reportDate">
-    <button class="primary" onclick="generateReport()">Generate</button>
-    <button onclick="closeReport()">Close</button>
-    <div id="reportOutput" style="margin-top:16px"></div>
-  </div>
-</section>
+    let petsData = [];
+    let ownersData = [];
 
-<!-- NOTES SECTION -->
-<section id="notes-section">
-  <h2>To Do List!</h2>
-  <div id="notesList"></div>
-  <hr>
-  <textarea id="note" placeholder="Write your note..."></textarea>
-  <button id="saveBtn">Save Note</button>
-</section>
+    // ── API CALL HELPER ──
+    async function api(action, payload = {}) {
+      const { data: { session } } = await supabaseAuth.auth.getSession();
+      const token = session ? session.access_token : SUPABASE_ANON_KEY;
 
-<!-- VACCINES SECTION -->
-<section id="vaccines-section">
-  <h2>💉 Vaccine Schedule</h2>
-  <select id="vaccineType" onchange="loadVaccines()" style="width:auto;margin-bottom:12px">
-    <option value="Εμβολιασμός">Εμβολιασμός</option>
-    <option value="εμβόλιο letifend">εμβόλιο letifend</option>
-  </select>
-  <button class="primary" onclick="loadVaccines()">🔄 Refresh</button>
-  <div id="vaccinesList" style="margin-top:16px"></div>
-</section>
-
-<script>
-// =====================
-// CONFIG — only public URLs here, no secrets
-// =====================
-const EDGE_URL = 'https://rblsaavfuwhbgexfgbvt.supabase.co/functions/v1';
-const ANON_KEY = 'sb_publishable_71ARKZBjLO4_sbwfZCzh9Q_bi3bJ7ES';
-const GOOGLE_CLIENT_ID = '817869412392-99t8tve1j5rf16u66lh03sa7lbmd011i.apps.googleusercontent.com';
-const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar';
-
-// =====================
-// EDGE FUNCTION CALLER
-// =====================
-async function api(action, payload = {}) {
-  const res = await fetch(`${EDGE_URL}/api`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` },
-    body: JSON.stringify({ action, payload })
-  });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return data;
-}
-
-async function calProxy(method, url, body = null) {
-  if (!googleToken) throw new Error('Please sign in with Google first');
-  const res = await fetch(`${EDGE_URL}/calendar-proxy`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': ANON_KEY,
-      'Authorization': `Bearer ${ANON_KEY}`,
-      'x-google-token': googleToken
-    },
-    body: JSON.stringify({ method, url, body })
-  });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return data;
-}
-
-// =====================
-// STATE
-// =====================
-let ownersData = [];
-let petsData = [];
-let productsData = [];
-let productDescriptions = [];
-let selectedOwnerID = null;
-let selectedPetID = null;
-let editSelectedOwnerID = null;
-let items = [];
-let googleToken = null;
-let tokenClient = null;
-
-// =====================
-// GOOGLE AUTH
-// =====================
-function initGoogleAuth() {
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: GOOGLE_CLIENT_ID,
-    scope: GOOGLE_SCOPES,
-    callback: (res) => {
-      if (res.access_token) { googleToken = res.access_token; onGoogleSignedIn(); }
-    }
-  });
-}
-
-function signInGoogle() {
-  if (!tokenClient) initGoogleAuth();
-  tokenClient.requestAccessToken();
-}
-
-function signOutGoogle() {
-  googleToken = null;
-  document.getElementById('driveAuthSection').style.display = 'block';
-  document.getElementById('driveUploadSection').style.display = 'none';
-  document.getElementById('calAuthStatus').innerHTML = `<button class="gcal-signin" onclick="signInGoogle()">🔑 Sign in with Google</button>`;
-  build();
-}
-
-function onGoogleSignedIn() {
-  document.getElementById('driveAuthSection').style.display = 'none';
-  document.getElementById('driveUploadSection').style.display = 'block';
-  document.getElementById('calAuthStatus').innerHTML = `
-    <span class="status-ok">✅ Connected to Google</span>
-    <button class="gcal-signout" onclick="signOutGoogle()">Sign out</button>`;
-  build();
-}
-
-// =====================
-// LOAD DATA
-// =====================
-async function loadAll() {
-  try {
-    ownersData = await api('getOwners');
-    petsData = await api('getPets');
-    productsData = await api('getProducts');
-    productDescriptions = productsData.map(p => p.name).filter(Boolean);
-  } catch(e) { console.error('Load error:', e); }
-}
-
-// =====================
-// HELPERS
-// =====================
-function safeStr(v) { return (v || '').toString(); }
-function pad(n) { return n.toString().padStart(2,'0'); }
-
-function makeDrop(inputId, dropId, items, onSelect) {
-  const list = document.getElementById(dropId);
-  list.innerHTML = '';
-  if (!items.length) { list.style.display = 'none'; return; }
-  items.forEach(item => {
-    const div = document.createElement('div');
-    div.innerHTML = item.label;
-    div.onclick = () => { onSelect(item); list.style.display = 'none'; };
-    list.appendChild(div);
-  });
-  list.style.display = 'block';
-}
-
-// =====================
-// SECTION NAVIGATION
-// =====================
-function showSection(name) {
-  document.querySelectorAll('section').forEach(s => s.style.display = 'none');
-  const sec = document.getElementById(name + '-section');
-  if (sec) sec.style.display = 'block';
-  clearAllFields();
-  if (name === 'notes') loadNotes();
-  if (name === 'vaccines') loadVaccines();
-  if (name === 'agenda') build();
-}
-
-document.getElementById('btnOwner').onclick = () => showSection('owner');
-document.getElementById('btnPet').onclick = () => showSection('pet');
-document.getElementById('btnMedical').onclick = () => showSection('medical');
-document.getElementById('btnSearch').onclick = () => showSection('search');
-document.getElementById('btnAgenda').onclick = () => showSection('agenda');
-document.getElementById('btnCash').onclick = () => showSection('cash');
-document.getElementById('btnNotes').onclick = () => showSection('notes');
-document.getElementById('btnVaccines').onclick = () => showSection('vaccines');
-
-function clearAllFields() {
-  ['ownerName','ownerPhone','ownerEmail','ownerAddress','editOwnerSearch','editOwnerID',
-   'newOwnerName','newOwnerPhone','newOwnerEmail','newOwnerAddress',
-   'petName','petOwners','microchipID','birthdate','editPetSearch','editPetID',
-   'editPetName','editPetOwner','editMicrochipID','editBirthdate',
-   'medicalPetInput','recordDate','description','treatment','vetNotes','searchInput'
-  ].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  const qty = document.getElementById('itemQty'); if (qty) qty.value = '1';
-  ['editSpecies','editSex','species','sex'].forEach(id => { const el = document.getElementById(id); if (el) el.selectedIndex = 0; });
-  ['editOwnerDrop','editPetDrop','editOwnerDrop2','ownerDrop','petDrop','descDrop',
-   'searchDrop','custDrop','itemDrop'].forEach(id => { const el = document.getElementById(id); if (el) { el.innerHTML=''; el.style.display='none'; } });
-  document.getElementById('searchInfo').innerHTML = '';
-  selectedOwnerID = null; selectedPetID = null; editSelectedOwnerID = null;
-}
-
-// =====================
-// OWNERS
-// =====================
-document.getElementById('editOwnerSearch').addEventListener('input', function() {
-  const q = this.value.toLowerCase();
-  const matches = ownersData.filter(o => o.name && o.name.toLowerCase().includes(q)).slice(0,5)
-    .map(o => ({ label: o.name, data: o }));
-  makeDrop('editOwnerSearch', 'editOwnerDrop', matches, item => {
-    const o = item.data;
-    document.getElementById('editOwnerSearch').value = o.name;
-    document.getElementById('editOwnerID').value = o.id;
-    document.getElementById('ownerName').value = o.name || '';
-    document.getElementById('ownerPhone').value = o.phone || '';
-    document.getElementById('ownerEmail').value = o.email || '';
-    document.getElementById('ownerAddress').value = o.address || '';
-  });
-});
-
-async function addOwner() {
-  const name = document.getElementById('newOwnerName').value.trim();
-  if (!name) { alert('Name is required'); return; }
-  try {
-    const res = await api('addOwner', {
-      name, phone: document.getElementById('newOwnerPhone').value.trim(),
-      email: document.getElementById('newOwnerEmail').value.trim(),
-      address: document.getElementById('newOwnerAddress').value.trim()
-    });
-    alert('✅ Owner added with ID: ' + res.id);
-    clearAllFields(); ownersData = await api('getOwners');
-  } catch(e) { alert('Error: ' + e.message); }
-}
-
-async function saveOwnerEdit() {
-  if (!confirm('Save changes to this owner?')) return;
-  const id = document.getElementById('editOwnerID').value;
-  if (!id) { alert('Please select an owner first'); return; }
-  try {
-    await api('updateOwner', {
-      id, name: document.getElementById('ownerName').value.trim(),
-      phone: document.getElementById('ownerPhone').value.trim(),
-      email: document.getElementById('ownerEmail').value.trim(),
-      address: document.getElementById('ownerAddress').value.trim()
-    });
-    alert('✅ Owner updated!'); clearAllFields(); ownersData = await api('getOwners');
-  } catch(e) { alert('Error: ' + e.message); }
-}
-
-async function deleteOwner() {
-  if (!confirm('Are you sure you want to DELETE this owner?')) return;
-  const id = document.getElementById('editOwnerID').value;
-  if (!id) { alert('Please select an owner first'); return; }
-  try {
-    await api('deleteOwner', { id });
-    alert('✅ Owner deleted!'); clearAllFields(); ownersData = await api('getOwners');
-  } catch(e) { alert('Error: ' + e.message); }
-}
-
-// =====================
-// PETS
-// =====================
-function searchOwners() {
-  const q = (document.getElementById('petOwners').value || '').toLowerCase();
-  const matches = ownersData.filter(o => o.name && o.name.toLowerCase().includes(q)).slice(0,5)
-    .map(o => ({ label: o.name, data: o }));
-  makeDrop('petOwners', 'ownerDrop', matches, item => {
-    document.getElementById('petOwners').value = item.data.name;
-    selectedOwnerID = item.data.id;
-  });
-}
-
-function searchOwnersForEdit() {
-  const q = (document.getElementById('editPetOwner').value || '').toLowerCase();
-  const matches = ownersData.filter(o => o.name && o.name.toLowerCase().includes(q)).slice(0,5)
-    .map(o => ({ label: o.name, data: o }));
-  makeDrop('editPetOwner', 'editOwnerDrop2', matches, item => {
-    document.getElementById('editPetOwner').value = item.data.name;
-    editSelectedOwnerID = item.data.id;
-  });
-}
-
-document.getElementById('editPetSearch').addEventListener('input', function() {
-  const q = this.value.toLowerCase();
-  const matches = petsData.filter(p => p.name && p.name.toLowerCase().includes(q)).slice(0,5)
-    .map(p => {
-      const owner = ownersData.find(o => o.id === p.owner_id);
-      return { label: `<b>${p.name}</b> <span style="font-size:13px;font-style:italic">(${owner ? owner.name : ''})</span>`, data: p, ownerName: owner ? owner.name : '' };
-    });
-  makeDrop('editPetSearch', 'editPetDrop', matches, item => {
-    const p = item.data;
-    document.getElementById('editPetSearch').value = p.name;
-    document.getElementById('editPetID').value = p.id;
-    document.getElementById('editPetName').value = p.name || '';
-    document.getElementById('editMicrochipID').value = p.microchip_id || '';
-    document.getElementById('editSpecies').value = p.species || '';
-    document.getElementById('editSex').value = p.sex || '';
-    document.getElementById('editBirthdate').value = p.birthdate || '';
-    document.getElementById('editPetOwner').value = item.ownerName;
-    editSelectedOwnerID = p.owner_id;
-  });
-});
-
-async function addPet() {
-  if (!selectedOwnerID) { alert('Please select an owner from the list'); return; }
-  const name = document.getElementById('petName').value.trim();
-  if (!name) { alert('Pet name is required'); return; }
-  try {
-    const res = await api('addPet', {
-      name, owner_id: selectedOwnerID,
-      microchip_id: document.getElementById('microchipID').value.trim(),
-      species: document.getElementById('species').value,
-      sex: document.getElementById('sex').value,
-      birthdate: document.getElementById('birthdate').value || null
-    });
-    alert('✅ Pet added with ID: ' + res.id);
-    clearAllFields(); petsData = await api('getPets');
-  } catch(e) { alert('Error: ' + e.message); }
-}
-
-async function savePetEdit() {
-  if (!document.getElementById('editPetOwner').value.trim()) { alert('Please select an owner'); return; }
-  if (!confirm('Save changes to this pet?')) return;
-  const id = document.getElementById('editPetID').value;
-  if (!id) { alert('Please select a pet first'); return; }
-  try {
-    await api('updatePet', {
-      id, name: document.getElementById('editPetName').value.trim(),
-      owner_id: editSelectedOwnerID,
-      microchip_id: document.getElementById('editMicrochipID').value.trim(),
-      species: document.getElementById('editSpecies').value,
-      sex: document.getElementById('editSex').value,
-      birthdate: document.getElementById('editBirthdate').value || null
-    });
-    alert('✅ Pet updated!'); clearAllFields();
-    petsData = await api('getPets'); ownersData = await api('getOwners');
-  } catch(e) { alert('Error: ' + e.message); }
-}
-
-async function deletePet() {
-  if (!confirm('Are you sure you want to DELETE this pet?')) return;
-  const id = document.getElementById('editPetID').value;
-  if (!id) { alert('Please select a pet first'); return; }
-  try {
-    await api('deletePet', { id });
-    alert('✅ Pet deleted!'); clearAllFields(); petsData = await api('getPets');
-  } catch(e) { alert('Error: ' + e.message); }
-}
-
-// =====================
-// MEDICAL RECORDS
-// =====================
-function searchPets() {
-  const q = (document.getElementById('medicalPetInput').value || '').toLowerCase();
-  const matches = petsData.filter(p => p.name && p.name.toLowerCase().includes(q)).slice(0,5)
-    .map(p => {
-      const owner = ownersData.find(o => o.id === p.owner_id);
-      return { label: `<b>${p.name}</b> <span style="font-size:13px;font-style:italic">(${owner ? owner.name : ''})</span>`, data: p };
-    });
-  makeDrop('medicalPetInput', 'petDrop', matches, item => {
-    document.getElementById('medicalPetInput').value = item.data.name;
-    selectedPetID = item.data.id;
-  });
-}
-
-document.getElementById('description').addEventListener('input', function() {
-  const q = (this.value || '').toLowerCase();
-  const matches = productDescriptions.filter(p => p && p.toLowerCase().includes(q)).slice(0,8)
-    .map(p => ({ label: p, data: p }));
-  makeDrop('description', 'descDrop', matches, item => {
-    document.getElementById('description').value = item.data;
-  });
-});
-
-async function addMedicalRecord() {
-  if (!selectedPetID) { alert('Please select a pet from the list'); return; }
-  const date = document.getElementById('recordDate').value;
-  const description = document.getElementById('description').value.trim();
-  if (!date) { alert('Please enter a date'); return; }
-  if (!description) { alert('Please enter a description'); return; }
-  try {
-    const res = await api('addMedicalRecord', {
-      pet_id: selectedPetID, date, description,
-      treatment: document.getElementById('treatment').value.trim(),
-      vet_notes: document.getElementById('vetNotes').value.trim(),
-      lab_link: ''
-    });
-    alert('✅ Medical record added with ID: ' + res.id);
-    clearAllFields();
-  } catch(e) { alert('Error: ' + e.message); }
-}
-
-// =====================
-// GOOGLE DRIVE UPLOAD
-// =====================
-async function uploadLabFile() {
-  if (!selectedPetID) { alert('Please select a pet first'); return; }
-  if (!googleToken) { alert('Please sign in with Google first'); return; }
-  const fileInput = document.getElementById('labFile');
-  if (!fileInput.files.length) { alert('Please select a file'); return; }
-  const file = fileInput.files[0];
-  const status = document.getElementById('uploadStatus');
-  status.innerHTML = '⏳ Uploading...';
-
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    try {
-      const base64 = e.target.result.split(',')[1];
-      const res = await fetch(`${EDGE_URL}/drive-upload`, {
+      const res = await fetch(EDGE_FUNCTION_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': ANON_KEY,
-          'Authorization': `Bearer ${ANON_KEY}`,
-          'x-google-token': googleToken
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ fileName: file.name, mimeType: file.type, fileBase64: base64, petId: selectedPetID })
+        body: JSON.stringify({ action, payload })
       });
+
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
-
-      // Save link to medical record via edge function
-      await api('updateLabLink', { pet_id: selectedPetID, lab_link: data.link });
-
-      status.innerHTML = `✅ Uploaded! <a href="${data.link}" target="_blank">📄 View File</a>`;
-      fileInput.value = '';
-    } catch(err) {
-      status.innerHTML = '❌ Upload failed: ' + err.message;
-    }
-  };
-  reader.readAsDataURL(file);
-}
-
-// =====================
-// SEARCH
-// =====================
-document.getElementById('searchInput').addEventListener('input', async function() {
-  const q = (this.value || '').trim().toLowerCase();
-  const qDigits = q.replace(/\D/g,'');
-  document.getElementById('searchInfo').innerHTML = '';
-  if (q.length < 2) { document.getElementById('searchDrop').style.display='none'; return; }
-
-  const petMatches = petsData.filter(p => p.name && p.name.toLowerCase().includes(q)).slice(0,5);
-  const ownerMatches = ownersData.filter(o =>
-    (o.name && o.name.toLowerCase().includes(q)) ||
-    (qDigits.length > 3 && o.phone && safeStr(o.phone).replace(/\D/g,'').includes(qDigits))
-  ).slice(0,5);
-
-  const all = [
-    ...petMatches.map(p => {
-      const owner = ownersData.find(o => o.id === p.owner_id);
-      return { label: `<b>${p.name}</b> <span style="font-size:13px;font-style:italic">(${owner ? owner.name : ''})</span>`, isPet: true, data: p };
-    }),
-    ...ownerMatches.map(o => {
-      const pets = petsData.filter(p => p.owner_id === o.id).map(p => p.name).join(', ');
-      return { label: `<b>${o.name}</b> <span style="font-size:13px;font-style:italic">(${pets})</span>`, isPet: false, data: o };
-    })
-  ].slice(0,8);
-
-  makeDrop('searchInput', 'searchDrop', all, async item => {
-    if (item.isPet) await showPetInfo(item.data);
-    else showOwnerInfo(item.data);
-  });
-});
-
-async function showPetInfo(pet) {
-  document.getElementById('searchDrop').style.display = 'none';
-  const owner = ownersData.find(o => o.id === pet.owner_id);
-  let history = [];
-  try { history = await api('getMedicalHistory', { pet_id: pet.id }); } catch(e) {}
-
-  let html = `<b>Pet Name:</b> ${pet.name}<br>
-    <b>Owner:</b> ${owner ? owner.name : ''}<br>
-    <b>Phone:</b> ${owner ? safeStr(owner.phone) : ''}<br>
-    <b>Microchip:</b> ${safeStr(pet.microchip_id)}<br>
-    <b>Species:</b> ${safeStr(pet.species)}<br>
-    <b>Sex:</b> ${safeStr(pet.sex)}<br>
-    <b>Birthdate:</b> ${safeStr(pet.birthdate)}<br>
-    <b>Medical History:</b><br>`;
-  history.forEach(h => {
-    html += `- ${h.date}: ${h.description} | ${h.treatment || ''} | ${h.vet_notes || ''}<br>`;
-    if (h.lab_link) html += `&nbsp;&nbsp;<a href="${h.lab_link}" target="_blank">📄 View Lab File</a><br>`;
-  });
-  document.getElementById('searchInfo').innerHTML = html;
-}
-
-function showOwnerInfo(owner) {
-  document.getElementById('searchDrop').style.display = 'none';
-  const pets = petsData.filter(p => p.owner_id === owner.id).map(p => p.name).join(', ');
-  document.getElementById('searchInfo').innerHTML = `
-    <b>Owner:</b> ${owner.name}<br><b>Phone:</b> ${safeStr(owner.phone)}<br>
-    <b>Email:</b> ${safeStr(owner.email)}<br><b>Address:</b> ${safeStr(owner.address)}<br>
-    <b>Pets:</b> ${pets}<br>`;
-}
-
-// =====================
-// CALENDAR
-// =====================
-let cur = new Date(), curY = cur.getFullYear(), curM = cur.getMonth(), selectedDay = null;
-const CAL_BASE = 'https://www.googleapis.com/calendar/v3/calendars/CALENDAR_ID_PLACEHOLDER';
-
-async function build() {
-  document.getElementById('monthTitle').innerText = new Date(curY, curM, 1).toLocaleString(undefined, { month:'long', year:'numeric' });
-  let counts = {};
-  if (googleToken) {
-    try {
-      const start = new Date(curY, curM, 1).toISOString();
-      const end = new Date(curY, curM+1, 1).toISOString();
-      const data = await calProxy('GET', `${CAL_BASE}/events?timeMin=${start}&timeMax=${end}&singleEvents=true&maxResults=250`);
-      (data.items || []).forEach(ev => {
-        const d = new Date(ev.start.dateTime || ev.start.date).getDate();
-        counts[d] = (counts[d] || 0) + 1;
-      });
-    } catch(e) { console.error('Calendar:', e); }
-  }
-  renderGrid(counts);
-
-  // ✅ After grid is rebuilt, re-render events for selected day if one is selected
-  if (selectedDay) {
-    const ds = `${curY}-${pad(curM+1)}-${pad(selectedDay)}`;
-    document.getElementById('evDate').value = ds;
-    await loadEventsForDay(selectedDay);
-  }
-}
-
-function renderGrid(counts) {
-  const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
-  const firstDay = new Date(curY, curM, 1).getDay();
-  const offset = firstDay === 0 ? 6 : firstDay - 1;
-  const daysInMonth = new Date(curY, curM+1, 0).getDate();
-  const today = new Date();
-
-  ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d => {
-    const lbl = document.createElement('div');
-    lbl.style.cssText = 'font-weight:700;text-align:center;padding:4px;';
-    lbl.innerText = d; grid.appendChild(lbl);
-  });
-
-  for (let i = 0; i < offset; i++) {
-    const b = document.createElement('div'); b.className='day'; b.style.visibility='hidden'; grid.appendChild(b);
-  }
-
-  for (let d = 1; d <= daysInMonth; d++) {
-    const el = document.createElement('div');
-    const isToday = d === today.getDate() && curY === today.getFullYear() && curM === today.getMonth();
-    const isSel = d === selectedDay;
-    el.className = 'day' + (isToday ? ' today' : '') + (isSel ? ' selected' : '');
-    el.innerHTML = `<div style="font-weight:700">${d}</div><div class="dots">${counts[d] ? '•'.repeat(Math.min(4,counts[d])) : ''}</div>`;
-    el.onclick = () => onSelectDay(d);
-    grid.appendChild(el);
-  }
-
-  // ✅ Only reset eventList text if no day is selected
-  if (!selectedDay) {
-    document.getElementById('eventList').innerHTML = googleToken
-      ? '<i>Select a day to see events</i>'
-      : '<i style="color:#999">Sign in with Google to manage events</i>';
-  }
-}
-
-// ✅ Separated event loading from day selection
-async function loadEventsForDay(day) {
-  const ds = `${curY}-${pad(curM+1)}-${pad(day)}`;
-  document.getElementById('eventList').innerHTML = '<i>Loading...</i>';
-  try {
-    const start = new Date(ds + 'T00:00:00').toISOString();
-    const end = new Date(ds + 'T23:59:59').toISOString();
-    const data = await calProxy('GET', `${CAL_BASE}/events?timeMin=${start}&timeMax=${end}&singleEvents=true&orderBy=startTime`);
-    const events = (data.items || []).map(ev => ({
-      id: ev.id, title: ev.summary || '',
-      start: ev.start.dateTime ? ev.start.dateTime.substring(11,16) : '',
-      end: ev.end.dateTime ? ev.end.dateTime.substring(11,16) : '',
-      description: ev.description || ''
-    }));
-    renderEvents(events);
-  } catch(e) {
-    document.getElementById('eventList').innerHTML = `<i style="color:red">Error: ${e.message}</i>`;
-  }
-}
-
-async function onSelectDay(day) {
-  if (!googleToken) { alert('Please sign in with Google to view events'); return; }
-  selectedDay = day;
-  const ds = `${curY}-${pad(curM+1)}-${pad(day)}`;
-  document.getElementById('evDate').value = ds;
-
-  // ✅ Update selected highlight without rebuilding grid
-  document.querySelectorAll('#calendarGrid .day').forEach(el => el.classList.remove('selected'));
-  const allCells = document.querySelectorAll('#calendarGrid .day');
-  const firstDay = new Date(curY, curM, 1).getDay();
-  const offset = (firstDay === 0 ? 6 : firstDay - 1);
-  const targetIndex = offset + day - 1;
-  if (allCells[targetIndex]) allCells[targetIndex].classList.add('selected');
-
-  await loadEventsForDay(day);
-}
-
-function renderEvents(events) {
-  const container = document.getElementById('eventList');
-  if (!events.length) { container.innerHTML = '<i>No events for this day</i>'; return; }
-  container.innerHTML = events.map(ev => `
-    <div class="event">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div><strong>${ev.title}</strong><div class="meta">🕐 ${ev.start} - ${ev.end}</div></div>
-        <button class="small" onclick="onEditEvent('${ev.id}','${ev.title.replace(/'/g,"\\'")}','${ev.start}','${ev.end}','${safeStr(ev.description).replace(/'/g,"\\'")}')">Edit</button>
-      </div>
-      ${ev.description ? `<div style="margin-top:6px;color:#444;font-size:14px">${ev.description}</div>` : ''}
-    </div>`).join('');
-}
-
-function onEditEvent(id, title, start, end, description) {
-  document.getElementById('evId').value = id;
-  document.getElementById('evTitle').value = title;
-  document.getElementById('evStart').value = start;
-  document.getElementById('evEnd').value = end;
-  document.getElementById('evDesc').value = description;
-  window.scrollTo(0, document.body.scrollHeight);
-}
-
-async function onSaveEvent() {
-  if (!googleToken) { alert('Please sign in with Google first'); return; }
-  const id = document.getElementById('evId').value.trim();
-  const title = document.getElementById('evTitle').value.trim();
-  const date = document.getElementById('evDate').value;
-  const start = document.getElementById('evStart').value;
-  const end = document.getElementById('evEnd').value;
-  const desc = document.getElementById('evDesc').value;
-  if (!title || !date || !start || !end) { alert('Fill title, date, start, end'); return; }
-
-  const event = {
-    summary: title, description: desc,
-    start: { dateTime: `${date}T${start}:00`, timeZone: 'Europe/Athens' },
-    end: { dateTime: `${date}T${end}:00`, timeZone: 'Europe/Athens' }
-  };
-
-  try {
-    if (id) {
-      await calProxy('PUT', `${CAL_BASE}/events/${id}`, event);
-      alert('✅ Event updated');
-    } else {
-      await calProxy('POST', `${CAL_BASE}/events`, event);
-      alert('✅ Event added');
-    }
-    onClearForm();
-    await build(); // ✅ rebuild grid dots AND re-render events
-  } catch(e) { alert('Error: ' + e.message); }
-}
-
-async function onDeleteEvent() {
-  if (!googleToken) { alert('Please sign in with Google first'); return; }
-  const id = document.getElementById('evId').value.trim();
-  if (!id) { alert('No event selected'); return; }
-  if (!confirm('Delete this event?')) return;
-  try {
-    await calProxy('DELETE', `${CAL_BASE}/events/${id}`);
-    alert('✅ Deleted');
-    onClearForm();
-    await build(); // ✅ rebuild grid dots AND re-render events
-  } catch(e) { alert('Error: ' + e.message); }
-}
-
-function onClearForm() {
-  ['evId','evTitle','evDate','evStart','evEnd','evDesc'].forEach(id => { document.getElementById(id).value = ''; });
-}
-
-function prevMonth() { curM--; if (curM<0) { curM=11; curY--; } selectedDay = null; build(); }
-function nextMonth() { curM++; if (curM>11) { curM=0; curY++; } selectedDay = null; build(); }
-function goToday() {
-  const t = new Date(); curY = t.getFullYear(); curM = t.getMonth();
-  selectedDay = t.getDate(); build();
-}
-
-
-// =====================
-// CASH REGISTER
-// =====================
-document.getElementById('custName').addEventListener('input', function() {
-  const q = (this.value || '').trim().toLowerCase();
-  const matches = ownersData.filter(o => o.name && o.name.toLowerCase().includes(q)).slice(0,5)
-    .map(o => ({ label: o.name, data: o }));
-  makeDrop('custName', 'custDrop', matches, item => {
-    document.getElementById('custName').value = item.data.name;
-  });
-});
-
-function onItemSearch() {
-  const q = (document.getElementById('itemSearch').value || '').toLowerCase();
-  if (!q) { document.getElementById('itemDrop').style.display='none'; return; }
-  const matches = productsData.filter(x => x.name && x.name.toLowerCase().includes(q)).slice(0,8)
-    .map(x => ({ label: `${x.name} — €${x.price}`, data: x }));
-  makeDrop('itemSearch', 'itemDrop', matches, item => {
-    document.getElementById('itemSearch').value = item.data.name;
-    document.getElementById('itemPrice').value = item.data.price;
-  });
-}
-
-function addItem() {
-  const name = (document.getElementById('itemSearch').value || '').trim();
-  const price = parseFloat(document.getElementById('itemPrice').value);
-  let qty = parseFloat(document.getElementById('itemQty').value) || 1;
-  const vat = parseFloat(document.getElementById('itemVAT').value);
-  if (!name || !price || qty <= 0) { alert('Fill item, price, qty'); return; }
-  items.push({ name, price, qty, vat });
-  renderItems(); updateTotals(); renderPreview();
-  document.getElementById('itemSearch').value = '';
-  document.getElementById('itemPrice').value = '';
-  document.getElementById('itemQty').value = '1';
-  document.getElementById('itemVAT').value = '0.24';
-}
-
-function deleteItem(i) { items.splice(i,1); renderItems(); updateTotals(); renderPreview(); }
-
-function renderItems() {
-  const tbody = document.querySelector('#itemsTable tbody'); tbody.innerHTML = '';
-  items.forEach((x,i) => {
-    const total = x.price * x.qty * (1 + x.vat);
-    tbody.innerHTML += `<tr><td>${x.name}</td><td>${x.qty}</td><td>${x.price.toFixed(2)}</td><td>${(x.vat*100).toFixed(0)}%</td><td>${total.toFixed(2)}</td><td><button onclick="deleteItem(${i})">🗑</button></td></tr>`;
-  });
-}
-
-function updateTotals() {
-  let sub = 0, vat = 0;
-  items.forEach(x => { sub += x.price * x.qty; vat += x.price * x.qty * x.vat; });
-  document.getElementById('subVal').innerText = sub.toFixed(2);
-  document.getElementById('vatVal').innerText = vat.toFixed(2);
-  document.getElementById('totVal').innerText = (sub + vat).toFixed(2);
-}
-
-function renderPreview() {
-  if (!items.length) { document.getElementById('receiptPreview').innerHTML = 'No items'; return; }
-  let html = items.map(x => `${x.qty} × ${x.name} — €${(x.price * x.qty * (1 + x.vat)).toFixed(2)}`).join('<br>');
-  html += `<hr>Total: €${document.getElementById('totVal').innerText}`;
-  document.getElementById('receiptPreview').innerHTML = html;
-}
-
-async function saveReceipt() {
-  const customer = (document.getElementById('custName').value || '').trim();
-  if (!customer) { alert('Please enter a customer name'); return; }
-  if (!items.length) { alert('Please add at least one item'); return; }
-  const itemsText = items.map(x => `${x.qty}x ${x.name} @ ${x.price.toFixed(2)} (VAT ${(x.vat*100).toFixed(0)}%) = ${(x.price*x.qty*(1+x.vat)).toFixed(2)}`).join('\n');
-  try {
-    await api('saveReceipt', {
-      customer, items: itemsText,
-      subtotal: parseFloat(document.getElementById('subVal').innerText),
-      vat: parseFloat(document.getElementById('vatVal').innerText),
-      total: parseFloat(document.getElementById('totVal').innerText),
-      method: document.getElementById('paymentMethod').value
-    });
-    alert('✅ Receipt saved!');
-    items = []; renderItems(); updateTotals(); renderPreview();
-    document.getElementById('custName').value = '';
-  } catch(e) { alert('Error: ' + e.message); }
-}
-
-document.getElementById('paymentMethod').addEventListener('change', function() {
-  document.getElementById('cashChangeSection').style.display = this.value === 'Cash' ? 'block' : 'none';
-});
-
-document.getElementById('clientPayment').addEventListener('input', function() {
-  const total = parseFloat(document.getElementById('totVal').textContent) || 0;
-  const paid = parseFloat(this.value) || 0;
-  document.getElementById('changeVal').textContent = paid >= total ? (paid - total).toFixed(2) : '0.00';
-});
-
-function openReport() { document.getElementById('reportDate').valueAsDate = new Date(); document.getElementById('reportModal').style.display = 'block'; }
-function closeReport() { document.getElementById('reportModal').style.display = 'none'; }
-
-async function generateReport() {
-  const d = document.getElementById('reportDate').value;
-  if (!d) { alert('Select a date'); return; }
-  try {
-    const receipts = await api('getReceipts', { date: d });
-    if (!receipts.length) { document.getElementById('reportOutput').innerHTML = '<i>No receipts for this date</i>'; return; }
-    let revenue = 0, cash = 0, card = 0, vat6 = 0, vat13 = 0, vat24 = 0;
-    receipts.forEach(r => {
-      revenue += parseFloat(r.total) || 0;
-      if ((r.method||'').trim() === 'Cash') cash += parseFloat(r.total) || 0; else card += parseFloat(r.total) || 0;
-      safeStr(r.items).split('\n').forEach(line => {
-        const vm = line.match(/\(VAT (\d+)%\)/); const tm = line.match(/= ([0-9.]+)/);
-        if (!vm || !tm) return;
-        const rate = parseInt(vm[1]); const lt = parseFloat(tm[1]);
-        if (rate === 6) vat6 += lt * 0.06/1.06;
-        else if (rate === 13) vat13 += lt * 0.13/1.13;
-        else if (rate === 24) vat24 += lt * 0.24/1.24;
-      });
-    });
-    document.getElementById('reportOutput').innerHTML = `
-      <h3>Report for ${d}</h3>
-      <p><strong>Total receipts:</strong> ${receipts.length}</p>
-      <p><strong>Revenue:</strong> €${revenue.toFixed(2)}</p>
-      <h4>VAT Breakdown</h4>
-      <p>6%: €${vat6.toFixed(2)}</p><p>13%: €${vat13.toFixed(2)}</p><p>24%: €${vat24.toFixed(2)}</p>
-      <h4>Payment Breakdown</h4>
-      <p>Cash: €${cash.toFixed(2)}</p><p>Card: €${card.toFixed(2)}</p>`;
-  } catch(e) { alert('Error: ' + e.message); }
-}
-
-// =====================
-// NOTES
-// =====================
-async function loadNotes() {
-  try {
-    const data = await api('getNotes');
-    const list = document.getElementById('notesList'); list.innerHTML = '';
-    if (!data.length) { list.innerHTML = '<em>No notes</em>'; return; }
-    data.forEach(n => {
-      const div = document.createElement('div'); div.className = 'note-item';
-      div.innerHTML = `<div style="flex:1"><div style="font-size:11px;color:#666">${new Date(n.timestamp).toLocaleString('el-GR')}</div><div>${safeStr(n.note)}</div></div><button onclick="deleteNote('${n.id}')">🗑</button>`;
-      list.appendChild(div);
-    });
-  } catch(e) { console.error(e); }
-}
-
-document.getElementById('saveBtn').addEventListener('click', async () => {
-  const note = (document.getElementById('note').value || '').trim();
-  if (!note) return;
-  try {
-    await api('saveNote', { note });
-    document.getElementById('note').value = ''; loadNotes();
-  } catch(e) { alert('Error: ' + e.message); }
-});
-
-async function deleteNote(id) {
-  try { await api('deleteNote', { id }); loadNotes(); }
-  catch(e) { alert('Error: ' + e.message); }
-}
-
-// =====================
-// VACCINES
-// =====================
-async function loadVaccines() {
-  const keyword = document.getElementById('vaccineType').value;
-  document.getElementById('vaccinesList').innerHTML = '<i>Loading...</i>';
-  try {
-    const { medData, remData } = await api('getVaccines', { keyword });
-    if (!medData || !medData.length) { 
-      document.getElementById('vaccinesList').innerHTML = '<i>No vaccine records found.</i>'; 
-      return; 
+      if (!res.ok || data.error) throw new Error(data.error || 'Server request failed');
+      return data;
     }
 
-    // Find latest vaccine per pet
-    const latestVaccine = {};
-    medData.forEach(r => { 
-      if (r.pet_id && r.date && (!latestVaccine[r.pet_id] || r.date > latestVaccine[r.pet_id])) {
-        latestVaccine[r.pet_id] = r.date;
+    // ── AUTHENTICATION MANAGEMENT ──
+    document.addEventListener("DOMContentLoaded", async () => {
+      const { data: { session } } = await supabaseAuth.auth.getSession();
+      if (session) {
+        showApp();
+      } else {
+        showLogin();
       }
     });
 
-    const reminders = {};
-    (remData || []).forEach(r => { 
-      reminders[`${r.pet_id}|${r.last_date}`] = r.reminded; 
-    });
+    async function handleLogin() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
+      const errorDiv = document.getElementById('loginError');
+      const loginBtn = document.getElementById('loginBtn');
 
-    const result = [];
-    Object.keys(latestVaccine).forEach(petID => {
-      const pet = petsData.find(p => p.id === petID); 
-      if (!pet) return;
+      if (!email || !password) {
+        errorDiv.innerText = "Please enter both email and password.";
+        return;
+      }
 
-      const owner = ownersData.find(o => o.id === pet.owner_id);
-      const lastDate = latestVaccine[petID]; // String YYYY-MM-DD
-      
-      // ✅ Timezone-safe +1 year calculation
-      const [y, m, d] = lastDate.split('-');
-      const nextDate = `${parseInt(y) + 1}-${m}-${d}`;
+      errorDiv.innerText = "";
+      loginBtn.disabled = true;
+      loginBtn.innerText = "Logging in...";
 
-      result.push({ 
-        petID, 
-        petName: pet.name, 
-        ownerName: owner ? owner.name : '', 
-        lastDate, 
-        nextDate, 
-        reminded: reminders[`${petID}|${lastDate}`] || false 
-      });
-    });
-
-    result.sort((a, b) => a.nextDate.localeCompare(b.nextDate));
-    renderVaccines(result);
-  } catch(e) { 
-    document.getElementById('vaccinesList').innerHTML = '<i>Error loading vaccines</i>'; 
-    console.error(e); 
-  }
-}
-
-function renderVaccines(data) {
-  // Get today's local date in YYYY-MM-DD string format
-  const todayStr = new Date().toLocaleDateString('sv-SE'); // Gives YYYY-MM-DD format safely
-  
-  const overdue = data.filter(v => v.nextDate < todayStr);
-  const upcoming = data.filter(v => v.nextDate >= todayStr);
-
-  let html = '';
-  if (overdue.length) html += `<h3 style="color:#c0392b">⚠️ Overdue (${overdue.length})</h3>` + buildVaccineTable(overdue, true);
-  if (upcoming.length) html += `<h3 style="color:#27ae60;margin-top:20px">✅ Upcoming (${upcoming.length})</h3>` + buildVaccineTable(upcoming, false);
-  if (!html) html = '<i>No records found.</i>';
-  
-  document.getElementById('vaccinesList').innerHTML = html;
-}
-
-function buildVaccineTable(list, isOverdue) {
-  const today = new Date(); 
-  today.setHours(0, 0, 0, 0);
-
-  let html = `<table class="table" style="width:90%"><thead><tr><th>Pet</th><th>Owner</th><th>Last Vaccine</th><th>Next Due</th><th>Days</th><th>Reminded</th><th>Action</th></tr></thead><tbody>`;
-  
-  list.forEach(v => {
-    // Parse target date locally
-    const [y, m, d] = v.nextDate.split('-').map(Number);
-    const targetDate = new Date(y, m - 1, d);
-    const diff = Math.round((targetDate - today) / 86400000);
-
-    const diffText = isOverdue 
-      ? `<span style="color:#c0392b;font-weight:bold">${Math.abs(diff)} days overdue</span>` 
-      : `<span style="color:#27ae60">${diff} days</span>`;
-      
-    const rowColor = v.reminded ? 'background:#e8f5e9' : isOverdue ? 'background:#fff5f5' : '';
-
-    // ✅ FIX 1: If already reminded, render disabled "✅ Sent" button regardless of reload
-    let actionButton = '';
-    if (v.reminded) {
-      actionButton = `<button class="small" disabled style="background:#888;cursor:not-allowed;">✅ Sent</button>`;
-    } else if (diff <= 30) {
-      actionButton = `<button class="small green" onclick="sendVaccineReminder('${v.petID}','${v.petName}','${v.ownerName}','${v.nextDate}','${v.lastDate}',this)">📧 Send</button>`;
+      try {
+        const { error } = await supabaseAuth.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        showApp();
+      } catch (err) {
+        errorDiv.innerText = err.message || "Invalid credentials.";
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerText = "Log In";
+      }
     }
 
-    html += `<tr style="${rowColor}" id="row-${v.petID}">
-      <td><b>${v.petName}</b></td>
-      <td>${v.ownerName}</td>
-      <td>${v.lastDate}</td>
-      <td><b>${v.nextDate}</b></td>
-      <td>${diffText}</td>
-      <td style="text-align:center">
-        <input type="checkbox" ${v.reminded ? 'checked' : ''} onchange="toggleReminder('${v.petID}','${v.lastDate}',this.checked,this)">
-      </td>
-      <td>${actionButton}</td>
-    </tr>`;
-  });
+    async function handleLogout() {
+      if (!confirm("Log out of system?")) return;
+      await supabaseAuth.auth.signOut();
+      showLogin();
+    }
 
-  return html + '</tbody></table>';
-}
+    function showApp() {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('appScreen').style.display = 'block';
+      initialDataLoad();
+    }
 
-async function toggleReminder(petID, lastDate, reminded, checkbox) {
-  const keyword = document.getElementById('vaccineType').value;
-  const row = document.getElementById('row-' + petID);
-  
-  if (row) {
-    row.style.background = reminded ? '#e8f5e9' : '';
-    
-    // ✅ FIX 2: Update button dynamically when checkbox is manually toggled
-    const btn = row.querySelector('button');
-    if (btn) {
-      if (reminded) {
-        btn.disabled = true;
-        btn.innerText = '✅ Sent';
+    function showLogin() {
+      document.getElementById('appScreen').style.display = 'none';
+      document.getElementById('loginScreen').style.display = 'flex';
+    }
+
+    async function initialDataLoad() {
+      try {
+        petsData = await api('getPets') || [];
+        ownersData = await api('getOwners') || [];
+        loadVaccines();
+      } catch(e) {
+        console.error('Failed to pre-load pets/owners:', e);
+      }
+    }
+
+    // ── VACCINE LOGIC ──
+    async function loadVaccines() {
+      const keyword = document.getElementById('vaccineType').value;
+      document.getElementById('vaccinesList').innerHTML = '<i>Loading vaccine records...</i>';
+      
+      try {
+        const { medData, remData } = await api('getVaccines', { keyword });
+        if (!medData || !medData.length) { 
+          document.getElementById('vaccinesList').innerHTML = '<i>No vaccine records found for ' + keyword + '.</i>'; 
+          return; 
+        }
+
+        const latestVaccine = {};
+        medData.forEach(r => { 
+          if (r.pet_id && r.date && (!latestVaccine[r.pet_id] || r.date > latestVaccine[r.pet_id])) {
+            latestVaccine[r.pet_id] = r.date;
+          }
+        });
+
+        const reminders = {};
+        (remData || []).forEach(r => { 
+          reminders[`${r.pet_id}|${r.last_date}`] = r.reminded; 
+        });
+
+        const result = [];
+        Object.keys(latestVaccine).forEach(petID => {
+          const pet = petsData.find(p => p.id === petID); 
+          if (!pet) return;
+
+          const owner = ownersData.find(o => o.id === pet.owner_id);
+          const lastDate = latestVaccine[petID];
+          
+          const [y, m, d] = lastDate.split('-');
+          const nextDate = `${parseInt(y) + 1}-${m}-${d}`;
+
+          result.push({ 
+            petID, 
+            petName: pet.name, 
+            ownerName: owner ? owner.name : '', 
+            lastDate, 
+            nextDate, 
+            reminded: reminders[`${petID}|${lastDate}`] || false 
+          });
+        });
+
+        result.sort((a, b) => a.nextDate.localeCompare(b.nextDate));
+        renderVaccines(result);
+      } catch(e) { 
+        document.getElementById('vaccinesList').innerHTML = '<i>Error loading vaccine records.</i>'; 
+        console.error(e); 
+      }
+    }
+
+    function renderVaccines(data) {
+      const todayStr = new Date().toLocaleDateString('sv-SE');
+      
+      const overdue = data.filter(v => v.nextDate < todayStr);
+      const upcoming = data.filter(v => v.nextDate >= todayStr);
+
+      let html = '';
+      if (overdue.length) html += `<h3 style="color:#c0392b;margin-bottom:12px;">⚠️ Overdue (${overdue.length})</h3>` + buildVaccineTable(overdue, true);
+      if (upcoming.length) html += `<h3 style="color:#27ae60;margin-top:28px;margin-bottom:12px;">✅ Upcoming (${upcoming.length})</h3>` + buildVaccineTable(upcoming, false);
+      if (!html) html = '<i>No records found.</i>';
+      
+      document.getElementById('vaccinesList').innerHTML = html;
+    }
+
+    function buildVaccineTable(list, isOverdue) {
+      const today = new Date(); 
+      today.setHours(0, 0, 0, 0);
+
+      let html = `<table class="table"><thead><tr><th>Pet</th><th>Owner</th><th>Last Vaccine</th><th>Next Due</th><th>Status / Days</th><th>Reminded</th><th>Action</th></tr></thead><tbody>`;
+      
+      list.forEach(v => {
+        const [y, m, d] = v.nextDate.split('-').map(Number);
+        const targetDate = new Date(y, m - 1, d);
+        const diff = Math.round((targetDate - today) / 86400000);
+
+        const diffText = isOverdue 
+          ? `<span style="color:#c0392b;font-weight:bold">${Math.abs(diff)} days overdue</span>` 
+          : `<span style="color:#27ae60">${diff} days away</span>`;
+          
+        const rowColor = v.reminded ? 'background:#e8f5e9' : isOverdue ? 'background:#fff5f5' : '';
+
+        let actionButton = '';
+        if (v.reminded) {
+          actionButton = `<button class="small" disabled style="background:#888;cursor:not-allowed;">✅ Sent</button>`;
+        } else if (diff <= 30) {
+          actionButton = `<button class="small green" onclick="sendVaccineReminder('${v.petID}','${v.petName}','${v.ownerName}','${v.nextDate}','${v.lastDate}',this)">📧 Send</button>`;
+        }
+
+        html += `<tr style="${rowColor}" id="row-${v.petID}">
+          <td><b>${v.petName}</b></td>
+          <td>${v.ownerName}</td>
+          <td>${v.lastDate}</td>
+          <td><b>${v.nextDate}</b></td>
+          <td>${diffText}</td>
+          <td style="text-align:center">
+            <input type="checkbox" ${v.reminded ? 'checked' : ''} onchange="toggleReminder('${v.petID}','${v.lastDate}',this.checked,this)">
+          </td>
+          <td>${actionButton}</td>
+        </tr>`;
+      });
+
+      return html + '</tbody></table>';
+    }
+
+    async function toggleReminder(petID, lastDate, reminded, checkbox) {
+      const keyword = document.getElementById('vaccineType').value;
+      const row = document.getElementById('row-' + petID);
+      
+      if (row) {
+        row.style.background = reminded ? '#e8f5e9' : '';
+        
+        const btn = row.querySelector('button');
+        if (btn) {
+          if (reminded) {
+            btn.disabled = true;
+            btn.innerText = '✅ Sent';
+            btn.className = 'small';
+            btn.style.background = '#888';
+            btn.style.cursor = 'not-allowed';
+          } else {
+            btn.disabled = false;
+            btn.innerText = '📧 Send';
+            btn.className = 'small green';
+            btn.style.background = '';
+            btn.style.cursor = 'pointer';
+          }
+        }
+      }
+      
+      try { 
+        await api('toggleReminder', { pet_id: petID, keyword, last_date: lastDate, reminded }); 
+      } catch(e) { 
+        console.error(e); 
+        if (checkbox) checkbox.checked = !reminded;
+      }
+    }
+
+    async function sendVaccineReminder(petID, petName, ownerName, nextDate, lastDate, btn) {
+      if (!confirm(`Send reminder email to ${ownerName} for ${petName}?`)) return;
+      
+      btn.disabled = true; 
+      btn.innerText = 'Sending...';
+
+      const pet = petsData.find(p => p.id === petID);
+      const owner = pet ? ownersData.find(o => o.id === pet.owner_id) : null;
+
+      if (!owner || !owner.email) { 
+        alert('No email address found for this owner.'); 
+        btn.disabled = false; 
+        btn.innerText = '📧 Send'; 
+        return; 
+      }
+
+      const keyword = document.getElementById('vaccineType').value;
+      const row = document.getElementById('row-' + petID);
+
+      try {
+        await api('sendVaccineReminder', {
+          ownerEmail: owner.email,
+          ownerName,
+          petName,
+          nextDate,
+          keyword,
+          pet_id: petID,
+          last_date: lastDate
+        });
+
+        btn.innerText = '✅ Sent'; 
         btn.className = 'small';
         btn.style.background = '#888';
         btn.style.cursor = 'not-allowed';
-      } else {
-        btn.disabled = false;
+
+        if (row) {
+          const cb = row.querySelector('input[type=checkbox]');
+          if (cb) cb.checked = true;
+          row.style.background = '#e8f5e9'; 
+        }
+      } catch(e) {
+        alert('Failed to send email: ' + e.message);
+        btn.disabled = false; 
         btn.innerText = '📧 Send';
-        btn.className = 'small green';
-        btn.style.background = '';
-        btn.style.cursor = 'pointer';
       }
     }
-  }
-  
-  try { 
-    await api('toggleReminder', { pet_id: petID, keyword, last_date: lastDate, reminded }); 
-  } catch(e) { 
-    console.error(e); 
-    if (checkbox) checkbox.checked = !reminded; // Rollback
-  }
-}
-
-async function sendVaccineReminder(petID, petName, ownerName, nextDate, lastDate, btn) {
-  if (!confirm(`Send reminder email to ${ownerName} for ${petName}?`)) return;
-  
-  btn.disabled = true; 
-  btn.innerText = 'Sending...';
-
-  const pet = petsData.find(p => p.id === petID);
-  const owner = pet ? ownersData.find(o => o.id === pet.owner_id) : null;
-
-  if (!owner || !owner.email) { 
-    alert('No email address found for this owner.'); 
-    btn.disabled = false; 
-    btn.innerText = '📧 Send'; 
-    return; 
-  }
-
-  const keyword = document.getElementById('vaccineType').value;
-  const row = document.getElementById('row-' + petID);
-
-  try {
-    await api('sendVaccineReminder', {
-      ownerEmail: owner.email,
-      ownerName,
-      petName,
-      nextDate,
-      keyword,
-      pet_id: petID,
-      last_date: lastDate
-    });
-
-    // ✅ FIX 3: Disable button and set cursor properly upon sending
-    btn.innerText = '✅ Sent'; 
-    btn.className = 'small';
-    btn.style.background = '#888';
-    btn.style.cursor = 'not-allowed';
-
-    if (row) {
-      const cb = row.querySelector('input[type=checkbox]');
-      if (cb) cb.checked = true;
-      row.style.background = '#e8f5e9'; 
-    }
-  } catch(e) {
-    alert('Failed to send email: ' + e.message);
-    btn.disabled = false; 
-    btn.innerText = '📧 Send';
-  }
-}
-// =====================
-// INIT
-// =====================
-window.addEventListener('DOMContentLoaded', async () => {
-  await loadAll();
-  showSection('agenda');
-});
-</script>
+  </script>
 </body>
 </html>
