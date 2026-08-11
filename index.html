@@ -278,10 +278,12 @@
 
   <script>
     // ── CONFIGURATION (UPDATE THESE VALUES) ──
-    const SUPABASE_URL = "YOUR_SUPABASE_URL";
-    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
-    const EDGE_FUNCTION_URL = "YOUR_EDGE_FUNCTION_URL";
-
+    const SUPABASE_URL = "https://rblsaavfuwhbgexfgbvt.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_71ARKZBjLO4_sbwfZCzh9Q_bi3bJ7ES";
+    const clinic-api = "https://rblsaavfuwhbgexfgbvt.supabase.co/functions/v1/api";
+    const calendar-proxy = "https://rblsaavfuwhbgexfgbvt.supabase.co/functions/v1/calendar-proxy";
+    const drive-upload = "https://rblsaavfuwhbgexfgbvt.supabase.co/functions/v1/drive-upload";
+    
     const supabaseAuth = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let petsData = [];
