@@ -1006,20 +1006,24 @@ function closeReport() { document.getElementById('reportModal').style.display = 
 
 async function generateReport() {
   const d = document.getElementById('reportDate').value;
-  if (!d) { alert('Select a date'); return; }
+  if (!d) {
+    alert('Select a date');
+    return;
+  }
 
   try {
+    // 1. Fetch receipts
     const receipts = await api('getReceipts', { date: d });
     const output = document.getElementById('reportOutput');
 
-    if (!receipts.length) { 
+    if (!receipts || !receipts.length) { 
       output.innerHTML = '<i>No receipts for this date</i>'; 
       return; 
     }
 
     let revenue = 0, cash = 0, card = 0, vat6 = 0, vat13 = 0, vat24 = 0;
 
-    // 1. Calculate Totals & Breakdown
+    // 2. Parse receipts
     receipts.forEach(r => {
       const recTotal = parseFloat(r.total) || 0;
       revenue += recTotal;
@@ -1030,7 +1034,8 @@ async function generateReport() {
         card += recTotal;
       }
 
-      safeStr(r.items).split('\n').forEach(line => {
+      // Inline safety check: fallback to empty string if r.items is null
+      (r.items || '').split('\n').forEach(line => {
         const vm = line.match(/\(VAT (\d+)%\)/); 
         const tm = line.match(/= ([0-9.]+)/);
         if (!vm || !tm) return;
@@ -1044,7 +1049,7 @@ async function generateReport() {
       });
     });
 
-    // 2. Display Report in UI
+    // 3. Display summary using d directly
     output.innerHTML = `
       <h3>Report for ${d}</h3>
       <p><strong>Total receipts:</strong> ${receipts.length}</p>
@@ -1055,9 +1060,10 @@ async function generateReport() {
       <p>24%: €${vat24.toFixed(2)}</p>
       <h4>Payment Breakdown</h4>
       <p>Cash: €${cash.toFixed(2)}</p>
-      <p>Card: €${card.toFixed(2)}</p>`;
+      <p>Card: €${card.toFixed(2)}</p>
+    `;
 
-    // 3. Prepare Supabase Payload
+    // 4. Save to Supabase via Edge Function
     const reportPayload = {
       report_date: d,
       total_receipts: receipts.length,
@@ -1070,23 +1076,14 @@ async function generateReport() {
       updated_at: new Date().toISOString()
     };
 
-    // --- OPTION A: Using direct Supabase JS SDK ---
-    const { error } = await supabase
-      .from('daily_reports')
-      .upsert(reportPayload, { onConflict: 'report_date' });
-
-    if (error) throw error;
-
-    // --- OPTION B: Using your custom api() wrapper (if implemented backend-side) ---
-    // await api('saveDailyReport', reportPayload);
+    await api('saveDailyReport', reportPayload);
 
     output.innerHTML += `<p style="color: green; margin-top: 10px;"><strong>✅ Daily report saved to Supabase!</strong></p>`;
 
-  } catch(e) { 
+  } catch (e) { 
     alert('Error processing report: ' + e.message); 
   }
 }
-
 // =====================
 // NOTES
 // =====================
