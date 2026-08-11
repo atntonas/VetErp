@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clinic Login</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #2c3e50;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .login-card {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+    }
+    .login-card h2 { margin-top: 0; color: #2c3e50; text-align: center; }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; }
+    .form-group input { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; }
+    button { width: 100%; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    button:hover { background: #219150; }
+    .error-msg { color: #e74c3c; font-size: 13px; margin-top: 15px; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <div class="login-card">
+    <h2>🐾 Clinic Login</h2>
+    
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="admin@clinic.com" required />
+    </div>
+
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" required />
+    </div>
+
+    <button id="loginBtn" onclick="handleLogin()">Log In</button>
+    <div id="loginError" class="error-msg"></div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://rblsaavfuwhbgexfgbvt.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJibHNhYXZmdXdoYmdleGZnYnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MDcyODEsImV4cCI6MjEwMTE4MzI4MX0.sj73FEFAGu4NCs_eJzf_XfkTfUpXcb6g3ZnCYR1VKz4";
+    const supabaseAuth = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // If the user is ALREADY logged in, skip login page and go straight to app
+    document.addEventListener("DOMContentLoaded", async () => {
+      const { data: { session } } = await supabaseAuth.auth.getSession();
+      if (session) {
+        window.location.href = "index.html";
+      }
+    });
+
+    async function handleLogin() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
+      const errorDiv = document.getElementById('loginError');
+      const loginBtn = document.getElementById('loginBtn');
+
+      if (!email || !password) {
+        errorDiv.innerText = "Please enter both email and password.";
+        return;
+      }
+
+      errorDiv.innerText = "";
+      loginBtn.disabled = true;
+      loginBtn.innerText = "Logging in...";
+
+      try {
+        const { error } = await supabaseAuth.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        
+        // REDIRECT TO MAIN APP FILE
+        window.location.href = "index.html";
+      } catch (err) {
+        errorDiv.innerText = err.message || "Invalid credentials.";
+        loginBtn.disabled = false;
+        loginBtn.innerText = "Log In";
+      }
+    }
+  </script>
+</body>
+</html>
