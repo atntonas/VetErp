@@ -23,19 +23,21 @@
       width: 100%;
       max-width: 380px;
       box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+      font-size: 25px;
+      
     }
      /* ── LOGO STYLING ── */
     .login-logo {
       display: flex;
-      max-width: 130px;
-      max-height: 130px;
+      max-width: 300px;
+      max-height: 300px;
       margin: 0 auto 18px auto;
       object-fit: contain;
     }
 
-    .login-card h2 { margin-top: 0; color: #2c3e50; text-align: center; }
+    .login-card h2 { margin-top: 0; color: #2c3e50; text-align: center;}
     .form-group { margin-bottom: 18px; }
-    .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; }
+    .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 18px; }
     .form-group input { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; }
     button { width: 100%; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
     button:hover { background: #219150; }
@@ -44,14 +46,14 @@
 </head>
 <body>
   
-  <div id="loginScreen" class="login-container">
-    <div class="login-card">
-      <img src="https://imagizer.imageshack.com/img922/6610/49hxJr.png" alt="Clinic Logo" class="login-logo" onerror="this.style.display='none';" />
-
-  
-  <div class="login-card">
-    <h2>🐾 Clinic Login</h2>
     
+  <div class="login-card"> 
+<img src="https://imagizer.imageshack.com/img922/6610/49hxJr.png" alt="Clinic Logo" class="login-logo" onerror="this.style.display='none';"
+</div>
+
+    <div><h2><strong><center>🐾 Vet Clinic </h2></div>
+   
+
     <div class="form-group">
       <label>Email</label>
       <input type="email" id="loginEmail" placeholder="admin@clinic.com" required />
