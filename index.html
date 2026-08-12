@@ -1394,8 +1394,8 @@ async function generateVaccineReport() {
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': ANON_KEY,
+        'Authorization': `Bearer ${ANON_KEY}`,
         'Content-Type': 'application/json'
       }
     });
