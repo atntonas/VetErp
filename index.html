@@ -1364,44 +1364,11 @@ async function sendVaccineReminder(petID, petName, ownerName, nextDate, lastDate
 // REPORTS
 // =====================
 
-  // Sample database - replace this with your actual database or API data
-const vaccineRecords = [
-  {
-    date: "2026-08-01",
-    vaccineName: "Rabies",
-    batchNumber: "RB-2026-88",
-    petName: "Max",
-    species: "Dog",
-    microchip: "985141002938471",
-    ownerName: "John Doe",
-    ownerPhone: "+1 555-0192"
-  },
-  {
-    date: "2026-08-05",
-    vaccineName: "DHPP",
-    batchNumber: "DH-2026-12",
-    petName: "Bella",
-    species: "Dog",
-    microchip: "985141002938999",
-    ownerName: "Jane Smith",
-    ownerPhone: "+1 555-0143"
-  },
-  {
-    date: "2026-08-10",
-    vaccineName: "FVRCP",
-    batchNumber: "FV-2026-04",
-    petName: "Luna",
-    species: "Cat",
-    microchip: "985141002931122",
-    ownerName: "Alice Johnson",
-    ownerPhone: "+1 555-0881"
-  }
-];
+  
 
 let filteredRecords = [];
 
-// 1. GENERATE REPORT FUNCTION
-function generateVaccineReport() {
+async function generateVaccineReport() {
   const fromDate = document.getElementById("reportFrom").value;
   const toDate = document.getElementById("reportTo").value;
   const contentDiv = document.getElementById("reportContent");
@@ -1413,19 +1380,62 @@ function generateVaccineReport() {
     return;
   }
 
-  // Filter records within date range
-  filteredRecords = vaccineRecords.filter(record => {
-    return record.date >= fromDate && record.date <= toDate;
-  });
+  // Show loading indicator
+  contentDiv.innerHTML = `<div style="padding: 16px;">⏳ Loading vaccine records...</div>`;
+  btnPDF.style.display = "none";
+  btnExcel.style.display = "none";
 
-  if (filteredRecords.length === 0) {
-    contentDiv.innerHTML = `<div class="no-records">No vaccine records found between ${fromDate} and ${toDate}.</div>`;
-    btnPDF.style.display = "none";
-    btnExcel.style.display = "none";
-    return;
+  try {
+    // Query medical_history table with foreign key relations
+    // Adjust column/table joins if your schema differs
+    const { data, error } = await supabase
+      .from('medical_history')
+      .select(`
+        id,
+        created_at,
+        vaccine_name,
+        batch_number,
+        vaccination_date,
+        pets (
+          name,
+          species,
+          microchip_number,
+          owners (
+            full_name,
+            phone
+          )
+        )
+      `)
+      .filter('vaccination_date', 'gte', fromDate)
+      .filter('vaccination_date', 'lte', toDate)
+      .order('vaccination_date', { ascending: true });
+
+    if (error) throw error;
+
+    filteredRecords = data;
+
+    if (!filteredRecords || filteredRecords.length === 0) {
+      contentDiv.innerHTML = `<div class="no-records">No vaccine records found between ${fromDate} and ${toDate}.</div>`;
+      return;
+    }
+
+    // Render Table HTML
+    renderReportTable(filteredRecords);
+
+    // Show Export Buttons
+    btnPDF.style.display = "inline-block";
+    btnExcel.style.display = "inline-block";
+
+  } catch (err) {
+    console.error("Supabase Query Error:", err);
+    contentDiv.innerHTML = `<div class="no-records" style="background-color:#f8d7da;">Error loading data: ${err.message}</div>`;
   }
+}
 
-  // Build Table HTML
+// 3. RENDER TABLE HTML
+function renderReportTable(records) {
+  const contentDiv = document.getElementById("reportContent");
+
   let tableHTML = `
     <table class="report-table" id="vaccineTable">
       <thead>
@@ -1443,45 +1453,50 @@ function generateVaccineReport() {
       <tbody>
   `;
 
-  filteredRecords.forEach(rec => {
+  records.forEach(rec => {
+    // Access nested attributes safely
+    const pet = rec.pets || {};
+    const owner = pet.owners || {};
+
     tableHTML += `
       <tr>
-        <td>${rec.date}</td>
-        <td><b>${rec.vaccineName}</b></td>
-        <td>${rec.batchNumber}</td>
-        <td>${rec.petName}</td>
-        <td>${rec.species}</td>
-        <td><code>${rec.microchip}</code></td>
-        <td>${rec.ownerName}</td>
-        <td>${rec.ownerPhone}</td>
+        <td>${rec.vaccination_date || 'N/A'}</td>
+        <td><b>${rec.vaccine_name || 'N/A'}</b></td>
+        <td>${rec.batch_number || 'N/A'}</td>
+        <td>${pet.name || 'N/A'}</td>
+        <td>${pet.species || 'N/A'}</td>
+        <td><code>${pet.microchip_number || 'N/A'}</code></td>
+        <td>${owner.full_name || 'N/A'}</td>
+        <td>${owner.phone || 'N/A'}</td>
       </tr>
     `;
   });
 
   tableHTML += `</tbody></table>`;
   contentDiv.innerHTML = tableHTML;
-
-  // Show Export Buttons
-  btnPDF.style.display = "inline-block";
-  btnExcel.style.display = "inline-block";
 }
 
-// 2. EXPORT TO EXCEL (CSV Format)
+// 4. EXPORT TO EXCEL (CSV)
 function exportVaccinesExcel() {
-  if (filteredRecords.length === 0) return;
+  if (!filteredRecords || filteredRecords.length === 0) return;
 
   const headers = ["Date", "Vaccine Name", "Batch #", "Pet Name", "Species", "Microchip", "Owner Name", "Owner Phone"];
   
-  const rows = filteredRecords.map(r => [
-    `"${r.date}"`,
-    `"${r.vaccineName}"`,
-    `"${r.batchNumber}"`,
-    `"${r.petName}"`,
-    `"${r.species}"`,
-    `"${r.microchip}"`,
-    `"${r.ownerName}"`,
-    `"${r.ownerPhone}"`
-  ]);
+  const rows = filteredRecords.map(r => {
+    const pet = r.pets || {};
+    const owner = pet.owners || {};
+    
+    return [
+      `"${r.vaccination_date || ''}"`,
+      `"${r.vaccine_name || ''}"`,
+      `"${r.batch_number || ''}"`,
+      `"${pet.name || ''}"`,
+      `"${pet.species || ''}"`,
+      `"${pet.microchip_number || ''}"`,
+      `"${owner.full_name || ''}"`,
+      `"${owner.phone || ''}"`
+    ];
+  });
 
   const csvContent = "data:text/csv;charset=utf-8," 
     + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
@@ -1495,7 +1510,7 @@ function exportVaccinesExcel() {
   document.body.removeChild(link);
 }
 
-// 3. EXPORT TO PDF (Print Window Method)
+// 5. EXPORT TO PDF
 function exportVaccinesPDF() {
   const table = document.getElementById("vaccineTable");
   if (!table) return;
@@ -1521,13 +1536,8 @@ function exportVaccinesPDF() {
   printWindow.document.write(table.outerHTML);
   printWindow.document.write("</body></html>");
   printWindow.document.close();
-  
-  // Trigger PDF print dialog
   printWindow.print();
 }
-  
-  
-  let currentReportData = null;
 
 async function generateSalesReport() {
   const dateFrom = document.getElementById('reportFrom').value;
