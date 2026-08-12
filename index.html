@@ -461,15 +461,7 @@ function showSection(name) {
   if (name === 'notes') loadNotes();
   if (name === 'vaccines') loadVaccines();
   if (name === 'agenda') build();
-  if (name === 'reports') {
-  const now = new Date();
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-  document.getElementById('reportFrom').value = firstDay;
-  document.getElementById('reportTo').value = lastDay;
-  document.getElementById('vaccReportFrom').value = firstDay;  // ✅
-  document.getElementById('vaccReportTo').value = lastDay;     // ✅
-}
+  
 }
 
 document.getElementById('btnOwner').onclick = () => showSection('owner');
