@@ -1510,6 +1510,26 @@ function exportVaccineReportExcel() {
   XLSX.utils.book_append_sheet(wb, ws, keyword.substring(0, 31));
   XLSX.writeFile(wb, `vaccine_report_${keyword}_${dateFrom}_${dateTo}.xlsx`);
 }
+let currentReportData = null;
+
+async function generateSalesReport() {
+  const dateFrom = document.getElementById('reportFrom').value;
+  const dateTo = document.getElementById('reportTo').value;
+  if (!dateFrom || !dateTo) { alert('Please select date range'); return; }
+  if (dateFrom > dateTo) { alert('From date must be before To date'); return; }
+
+  document.getElementById('reportContent').innerHTML = '<i>Loading...</i>';
+
+  try {
+    const data = await api('getSalesReport', { dateFrom, dateTo });
+    currentReportData = { ...data, dateFrom, dateTo };
+    renderSalesReport(data, dateFrom, dateTo);
+    document.getElementById('btnExportPDF').style.display = 'inline-block';
+    document.getElementById('btnExportExcel').style.display = 'inline-block';
+  } catch(e) {
+    document.getElementById('reportContent').innerHTML = '<i style="color:red">Error: ' + e.message + '</i>';
+  }
+}  
 function renderSalesReport(data, dateFrom, dateTo) {
   if (!data.receipts) {
     document.getElementById('reportContent').innerHTML = '<i>No receipts found for this period.</i>';
