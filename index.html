@@ -266,33 +266,33 @@
 </section>
 
 <!-- REPORT SECTION -->
- <div id="reportContent"></div>
+
   <section id="reports-section">
-  <h2>💉 Vaccine Report</h2>
+  <hr style="margin:24px 0">
+<h2>💉 Vaccine Report</h2>
 
-  <div class="report-controls">
-    <div class="field-group">
-      <label for="reportFrom">From:</label>
-      <input type="date" id="reportFrom">
-    </div>
-
-    <div class="field-group">
-      <label for="reportTo">To:</label>
-      <input type="date" id="reportTo">
-    </div>
-
-    <button type="button" class="btn btn-primary" onclick="generateVaccineReport()">
-      🔍 Generate Report
-    </button>
-
-    <button type="button" class="btn btn-pdf" id="btnExportPDF" onclick="exportVaccinesPDF()">
-      📄 Export PDF
-    </button>
-
-    <button type="button" class="btn btn-excel" id="btnExportExcel" onclick="exportVaccinesExcel()">
-      📊 Export Excel
-    </button>
+<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+  <div>
+    <label><b>From:</b></label>
+    <input type="date" id="vaccReportFrom" style="width:auto">
   </div>
+  <div>
+    <label><b>To:</b></label>
+    <input type="date" id="vaccReportTo" style="width:auto">
+  </div>
+  <div>
+    <label><b>Vaccine:</b></label>
+    <select id="vaccReportType" style="width:auto">
+      <option value="Εμβολιασμός">Εμβολιασμός</option>
+      <option value="εμβόλιο letifend">εμβόλιο letifend</option>
+    </select>
+  </div>
+  <button class="primary" onclick="generateVaccineReport()">🔍 Generate</button>
+  <button onclick="exportVaccineReportPDF()" id="btnVaccPDF" style="display:none;background:#e74c3c;color:white;border:none">📄 Export PDF</button>
+  <button onclick="exportVaccineReportExcel()" id="btnVaccExcel" style="display:none;background:#27ae60;color:white;border:none">📊 Export Excel</button>
+</div>
+
+<div id="vaccineReportContent"></div>
 
   <h2>📊 Sales Report</h2>
 
@@ -467,6 +467,8 @@ function showSection(name) {
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
   document.getElementById('reportFrom').value = firstDay;
   document.getElementById('reportTo').value = lastDay;
+  document.getElementById('vaccReportFrom').value = firstDay;  // ✅
+  document.getElementById('vaccReportTo').value = lastDay;     // ✅
 }
 }
 
@@ -1365,62 +1367,156 @@ async function sendVaccineReminder(petID, petName, ownerName, nextDate, lastDate
 // =====================
 
 
+let currentVaccineReportData = null;
+
 async function generateVaccineReport() {
-  const fromDate = document.getElementById("reportFrom").value;
-  const toDate = document.getElementById("reportTo").value;
-  const contentDiv = document.getElementById("reportContent");
-  const btnPDF = document.getElementById("btnExportPDF");
-  const btnExcel = document.getElementById("btnExportExcel");
+  const dateFrom = document.getElementById('vaccReportFrom').value;
+  const dateTo = document.getElementById('vaccReportTo').value;
+  const keyword = document.getElementById('vaccReportType').value;
+  if (!dateFrom || !dateTo) { alert('Please select date range'); return; }
+  if (dateFrom > dateTo) { alert('From date must be before To date'); return; }
 
-  if (!fromDate || !toDate) {
-    alert("Please select both 'From' and 'To' dates.");
-    return;
-  }
-
-  contentDiv.innerHTML = `<div style="padding: 16px;">⏳ Loading vaccine records...</div>`;
-  btnPDF.style.display = "none";
-  btnExcel.style.display = "none";
-
-  // Build the URL with PostgREST query parameters
-  const selectQuery = 'id,vaccine_name,batch_number,vaccination_date,pets(name,species,microchip_number,owners(full_name,phone))';
-  
-  const apiUrl = `${SUPABASE_URL}/rest/v1/medical_history`
-    + `?select=${encodeURIComponent(selectQuery)}`
-    + `&vaccination_date=gte.${fromDate}`
-    + `&vaccination_date=lte.${toDate}`
-    + `&order=vaccination_date.asc`;
+  document.getElementById('vaccineReportContent').innerHTML = '<i>Loading...</i>';
 
   try {
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'apikey': ANON_KEY,
-        'Authorization': `Bearer ${ANON_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    filteredRecords = await response.json();
-
-    if (!filteredRecords || filteredRecords.length === 0) {
-      contentDiv.innerHTML = `<div class="no-records">No vaccine records found between ${fromDate} and ${toDate}.</div>`;
-      return;
-    }
-
-    renderReportTable(filteredRecords);
-    btnPDF.style.display = "inline-block";
-    btnExcel.style.display = "inline-block";
-
-  } catch (err) {
-    console.error("Fetch Error:", err);
-    contentDiv.innerHTML = `<div class="no-records">Error loading data: ${err.message}</div>`;
+    const data = await api('getVaccineReport', { dateFrom, dateTo, keyword });
+    currentVaccineReportData = { ...data, dateFrom, dateTo, keyword };
+    renderVaccineReport(data, dateFrom, dateTo, keyword);
+    document.getElementById('btnVaccPDF').style.display = 'inline-block';
+    document.getElementById('btnVaccExcel').style.display = 'inline-block';
+  } catch(e) {
+    document.getElementById('vaccineReportContent').innerHTML = '<i style="color:red">Error: ' + e.message + '</i>';
   }
 }
 
+function renderVaccineReport(data, dateFrom, dateTo, keyword) {
+  if (!data.records || !data.records.length) {
+    document.getElementById('vaccineReportContent').innerHTML = '<i>No vaccinations found for this period.</i>';
+    return;
+  }
+
+  const html = `
+    <div id="vaccineReportPrintArea">
+      <h3>💉 ${keyword} Report: ${dateFrom} → ${dateTo}</h3>
+      <p><b>Total vaccinations:</b> ${data.records.length}</p>
+      <table class="table" style="width:95%">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Pet Name</th>
+            <th>Species</th>
+            <th>Microchip</th>
+            <th>Birthdate</th>
+            <th>Owner</th>
+            <th>Phone</th>
+            <th>Email</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.records.map(r => `
+            <tr>
+              <td>${r.date}</td>
+              <td><b>${r.petName}</b></td>
+              <td>${r.species}</td>
+              <td>${r.microchip}</td>
+              <td>${r.birthdate}</td>
+              <td>${r.ownerName}</td>
+              <td>${r.ownerPhone}</td>
+              <td>${r.ownerEmail}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  document.getElementById('vaccineReportContent').innerHTML = html;
+}
+
+// =====================
+// EXPORT VACCINE PDF
+// =====================
+function exportVaccineReportPDF() {
+  const printArea = document.getElementById('vaccineReportPrintArea');
+  if (!printArea) { alert('Generate a report first'); return; }
+
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Vaccine Report</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; color: #111; }
+        h2 { color: #2c3e50; }
+        h3 { color: #2c3e50; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th { background: #f0f4ff; border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 13px; }
+        td { border: 1px solid #ccc; padding: 8px; font-size: 13px; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        @media print {
+          body { padding: 10px; }
+          button { display: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <h2>🏥 Κτηνιατρείο Ντόνας Αθανάσιος / Ntonas Athanasios Vet Clinic</h2>
+      ${printArea.innerHTML}
+      <script>window.onload = () => { window.print(); window.close(); }<\/script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+
+// =====================
+// EXPORT VACCINE EXCEL
+// =====================
+function exportVaccineReportExcel() {
+  if (!currentVaccineReportData) { alert('Generate a report first'); return; }
+  const { records, dateFrom, dateTo, keyword } = currentVaccineReportData;
+
+  const wb = XLSX.utils.book_new();
+
+  // Sheet — Vaccine Records
+  const rows = [
+    [`${keyword} Report — ${dateFrom} to ${dateTo}`],
+    [`Total vaccinations: ${records.length}`],
+    [],
+    ['Date', 'Pet Name', 'Species', 'Microchip', 'Birthdate', 'Owner Name', 'Phone', 'Email']
+  ];
+
+  records.forEach(r => {
+    rows.push([
+      r.date,
+      r.petName,
+      r.species,
+      r.microchip,
+      r.birthdate,
+      r.ownerName,
+      r.ownerPhone,
+      r.ownerEmail
+    ]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+
+  // Set column widths
+  ws['!cols'] = [
+    { wch: 12 }, // Date
+    { wch: 20 }, // Pet Name
+    { wch: 10 }, // Species
+    { wch: 18 }, // Microchip
+    { wch: 12 }, // Birthdate
+    { wch: 25 }, // Owner Name
+    { wch: 15 }, // Phone
+    { wch: 25 }, // Email
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, keyword.substring(0, 31));
+  XLSX.writeFile(wb, `vaccine_report_${keyword}_${dateFrom}_${dateTo}.xlsx`);
+}
 function renderSalesReport(data, dateFrom, dateTo) {
   if (!data.receipts) {
     document.getElementById('reportContent').innerHTML = '<i>No receipts found for this period.</i>';
