@@ -290,6 +290,7 @@
   <button class="primary" onclick="generateVaccineReport()">🔍 Generate</button>
   <button onclick="exportVaccineReportPDF()" id="btnVaccPDF" style="display:none;background:#e74c3c;color:white;border:none">📄 Export PDF</button>
   <button onclick="exportVaccineReportExcel()" id="btnVaccExcel" style="display:none;background:#27ae60;color:white;border:none">📊 Export Excel</button>
+  <button onclick="closeVaccineReport()">Close</button>
 </div>
 
 <div id="vaccineReportContent"></div>
@@ -308,7 +309,7 @@
     <button class="primary" onclick="generateSalesReport()">🔍 Generate</button>
     <button onclick="exportReportPDF()" id="btnExportPDF" style="display:none;background:#e74c3c;color:white;border:none">📄 Export PDF</button>
     <button onclick="exportReportExcel()" id="btnExportExcel" style="display:none;background:#27ae60;color:white;border:none">📊 Export Excel</button>
-    <button onclick="closeReport()">Close</button>
+    <button onclick="closeSalesReport()">Close</button>
   </div>
 
   <div id="reportContent"></div>
@@ -1692,7 +1693,21 @@ function exportReportExcel() {
   // Download
   XLSX.writeFile(wb, `sales_report_${dateFrom}_${dateTo}.xlsx`);
 }
-function closeReport() { document.getElementById('reportContent').style.display = 'none'; }
+function closeSalesReport() {
+  document.getElementById('reportContent').innerHTML = '';
+  document.getElementById('btnExportPDF').style.display = 'none';
+  document.getElementById('btnExportExcel').style.display = 'none';
+  document.getElementById('btnCloseSales').style.display = 'none';
+  currentReportData = null;
+}
+
+function closeVaccineReport() {
+  document.getElementById('vaccineReportContent').innerHTML = '';
+  document.getElementById('btnVaccPDF').style.display = 'none';
+  document.getElementById('btnVaccExcel').style.display = 'none';
+  document.getElementById('btnCloseVacc').style.display = 'none';
+  currentVaccineReportData = null;
+}
   
 // =====================
 // AUTH GUARD & INIT
