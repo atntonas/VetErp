@@ -266,7 +266,34 @@
 </section>
 
 <!-- REPORT SECTION -->
+ <div id="reportContent"></div>
   <section id="reports-section">
+  <h2>💉 Vaccine Report</h2>
+
+  <div class="report-controls">
+    <div class="field-group">
+      <label for="reportFrom">From:</label>
+      <input type="date" id="reportFrom">
+    </div>
+
+    <div class="field-group">
+      <label for="reportTo">To:</label>
+      <input type="date" id="reportTo">
+    </div>
+
+    <button type="button" class="btn btn-primary" onclick="generateVaccineReport()">
+      🔍 Generate Report
+    </button>
+
+    <button type="button" class="btn btn-pdf" id="btnExportPDF" onclick="exportVaccinesPDF()">
+      📄 Export PDF
+    </button>
+
+    <button type="button" class="btn btn-excel" id="btnExportExcel" onclick="exportVaccinesExcel()">
+      📊 Export Excel
+    </button>
+  </div>
+
   <h2>📊 Sales Report</h2>
 
   <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
@@ -1336,7 +1363,171 @@ async function sendVaccineReminder(petID, petName, ownerName, nextDate, lastDate
 // =====================
 // REPORTS
 // =====================
-let currentReportData = null;
+
+  // Sample database - replace this with your actual database or API data
+const vaccineRecords = [
+  {
+    date: "2026-08-01",
+    vaccineName: "Rabies",
+    batchNumber: "RB-2026-88",
+    petName: "Max",
+    species: "Dog",
+    microchip: "985141002938471",
+    ownerName: "John Doe",
+    ownerPhone: "+1 555-0192"
+  },
+  {
+    date: "2026-08-05",
+    vaccineName: "DHPP",
+    batchNumber: "DH-2026-12",
+    petName: "Bella",
+    species: "Dog",
+    microchip: "985141002938999",
+    ownerName: "Jane Smith",
+    ownerPhone: "+1 555-0143"
+  },
+  {
+    date: "2026-08-10",
+    vaccineName: "FVRCP",
+    batchNumber: "FV-2026-04",
+    petName: "Luna",
+    species: "Cat",
+    microchip: "985141002931122",
+    ownerName: "Alice Johnson",
+    ownerPhone: "+1 555-0881"
+  }
+];
+
+let filteredRecords = [];
+
+// 1. GENERATE REPORT FUNCTION
+function generateVaccineReport() {
+  const fromDate = document.getElementById("reportFrom").value;
+  const toDate = document.getElementById("reportTo").value;
+  const contentDiv = document.getElementById("reportContent");
+  const btnPDF = document.getElementById("btnExportPDF");
+  const btnExcel = document.getElementById("btnExportExcel");
+
+  if (!fromDate || !toDate) {
+    alert("Please select both 'From' and 'To' dates.");
+    return;
+  }
+
+  // Filter records within date range
+  filteredRecords = vaccineRecords.filter(record => {
+    return record.date >= fromDate && record.date <= toDate;
+  });
+
+  if (filteredRecords.length === 0) {
+    contentDiv.innerHTML = `<div class="no-records">No vaccine records found between ${fromDate} and ${toDate}.</div>`;
+    btnPDF.style.display = "none";
+    btnExcel.style.display = "none";
+    return;
+  }
+
+  // Build Table HTML
+  let tableHTML = `
+    <table class="report-table" id="vaccineTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Vaccine</th>
+          <th>Batch #</th>
+          <th>Pet Name</th>
+          <th>Species</th>
+          <th>Microchip</th>
+          <th>Owner Name</th>
+          <th>Owner Phone</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  filteredRecords.forEach(rec => {
+    tableHTML += `
+      <tr>
+        <td>${rec.date}</td>
+        <td><b>${rec.vaccineName}</b></td>
+        <td>${rec.batchNumber}</td>
+        <td>${rec.petName}</td>
+        <td>${rec.species}</td>
+        <td><code>${rec.microchip}</code></td>
+        <td>${rec.ownerName}</td>
+        <td>${rec.ownerPhone}</td>
+      </tr>
+    `;
+  });
+
+  tableHTML += `</tbody></table>`;
+  contentDiv.innerHTML = tableHTML;
+
+  // Show Export Buttons
+  btnPDF.style.display = "inline-block";
+  btnExcel.style.display = "inline-block";
+}
+
+// 2. EXPORT TO EXCEL (CSV Format)
+function exportVaccinesExcel() {
+  if (filteredRecords.length === 0) return;
+
+  const headers = ["Date", "Vaccine Name", "Batch #", "Pet Name", "Species", "Microchip", "Owner Name", "Owner Phone"];
+  
+  const rows = filteredRecords.map(r => [
+    `"${r.date}"`,
+    `"${r.vaccineName}"`,
+    `"${r.batchNumber}"`,
+    `"${r.petName}"`,
+    `"${r.species}"`,
+    `"${r.microchip}"`,
+    `"${r.ownerName}"`,
+    `"${r.ownerPhone}"`
+  ]);
+
+  const csvContent = "data:text/csv;charset=utf-8," 
+    + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `Vaccine_Report_${document.getElementById("reportFrom").value}_to_${document.getElementById("reportTo").value}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// 3. EXPORT TO PDF (Print Window Method)
+function exportVaccinesPDF() {
+  const table = document.getElementById("vaccineTable");
+  if (!table) return;
+
+  const fromDate = document.getElementById("reportFrom").value;
+  const toDate = document.getElementById("reportTo").value;
+
+  const printWindow = window.open("", "", "height=600,width=800");
+  printWindow.document.write("<html><head><title>Vaccine Report</title>");
+  printWindow.document.write(`
+    <style>
+      body { font-family: Arial, sans-serif; padding: 20px; }
+      h1 { font-size: 20px; margin-bottom: 5px; }
+      p { margin-top: 0; color: #555; }
+      table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+      th, td { border: 1px solid #333; padding: 8px; text-align: left; font-size: 12px; }
+      th { background-color: #f2f2f2; }
+    </style>
+  `);
+  printWindow.document.write("</head><body>");
+  printWindow.document.write(`<h1>💉 Vaccine Report</h1>`);
+  printWindow.document.write(`<p>Period: ${fromDate} to ${toDate}</p>`);
+  printWindow.document.write(table.outerHTML);
+  printWindow.document.write("</body></html>");
+  printWindow.document.close();
+  
+  // Trigger PDF print dialog
+  printWindow.print();
+}
+  
+  
+  let currentReportData = null;
 
 async function generateSalesReport() {
   const dateFrom = document.getElementById('reportFrom').value;
