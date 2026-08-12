@@ -1364,7 +1364,11 @@ async function sendVaccineReminder(petID, petName, ownerName, nextDate, lastDate
 // REPORTS
 // =====================
 
-  
+// Replace with your actual Supabase credentials
+const SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR_ANON_KEY";
+
+let filteredRecords = [];
 
 async function generateVaccineReport() {
   const fromDate = document.getElementById("reportFrom").value;
@@ -1382,33 +1386,30 @@ async function generateVaccineReport() {
   btnPDF.style.display = "none";
   btnExcel.style.display = "none";
 
+  // Build the URL with PostgREST query parameters
+  const selectQuery = 'id,vaccine_name,batch_number,vaccination_date,pets(name,species,microchip_number,owners(full_name,phone))';
+  
+  const apiUrl = `${SUPABASE_URL}/rest/v1/medical_history`
+    + `?select=${encodeURIComponent(selectQuery)}`
+    + `&vaccination_date=gte.${fromDate}`
+    + `&vaccination_date=lte.${toDate}`
+    + `&order=vaccination_date.asc`;
+
   try {
-    // Note: Updated to use `supabaseClient`
-    const { data, error } = await supabaseClient
-      .from('medical_history')
-      .select(`
-        id,
-        created_at,
-        vaccine_name,
-        batch_number,
-        vaccination_date,
-        pets (
-          name,
-          species,
-          microchip_number,
-          owners (
-            full_name,
-            phone
-          )
-        )
-      `)
-      .gte('vaccination_date', fromDate)
-      .lte('vaccination_date', toDate)
-      .order('vaccination_date', { ascending: true });
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
 
-    if (error) throw error;
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
-    filteredRecords = data;
+    filteredRecords = await response.json();
 
     if (!filteredRecords || filteredRecords.length === 0) {
       contentDiv.innerHTML = `<div class="no-records">No vaccine records found between ${fromDate} and ${toDate}.</div>`;
@@ -1420,26 +1421,8 @@ async function generateVaccineReport() {
     btnExcel.style.display = "inline-block";
 
   } catch (err) {
-    console.error("Supabase Query Error:", err);
+    console.error("Fetch Error:", err);
     contentDiv.innerHTML = `<div class="no-records">Error loading data: ${err.message}</div>`;
-  }
-}
-async function generateSalesReport() {
-  const dateFrom = document.getElementById('reportFrom').value;
-  const dateTo = document.getElementById('reportTo').value;
-  if (!dateFrom || !dateTo) { alert('Please select date range'); return; }
-  if (dateFrom > dateTo) { alert('From date must be before To date'); return; }
-
-  document.getElementById('reportContent').innerHTML = '<i>Loading...</i>';
-
-  try {
-    const data = await api('getSalesReport', { dateFrom, dateTo });
-    currentReportData = { ...data, dateFrom, dateTo };
-    renderSalesReport(data, dateFrom, dateTo);
-    document.getElementById('btnExportPDF').style.display = 'inline-block';
-    document.getElementById('btnExportExcel').style.display = 'inline-block';
-  } catch(e) {
-    document.getElementById('reportContent').innerHTML = '<i style="color:red">Error: ' + e.message + '</i>';
   }
 }
 
