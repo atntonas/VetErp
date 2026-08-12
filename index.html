@@ -1612,8 +1612,7 @@ function renderSalesReport(data, dateFrom, dateTo) {
   document.getElementById('reportContent').innerHTML = html;
 }
 
-function closeReport() { document.getElementById('reportContent').style.display = 'none'; }
-  
+
 // =====================
 // EXPORT PDF
 // =====================
@@ -1693,7 +1692,8 @@ function exportReportExcel() {
   // Download
   XLSX.writeFile(wb, `sales_report_${dateFrom}_${dateTo}.xlsx`);
 }
-
+function closeReport() { document.getElementById('reportContent').style.display = 'none'; }
+  
 // =====================
 // AUTH GUARD & INIT
 // =====================
