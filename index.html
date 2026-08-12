@@ -1510,6 +1510,27 @@ function exportReportExcel() {
   // Download
   XLSX.writeFile(wb, `sales_report_${dateFrom}_${dateTo}.xlsx`);
 }
+// =====================
+// AUTH GUARD & INIT
+// =====================
+window.addEventListener('DOMContentLoaded', async () => {
+  // 1. Verify user session
+  const { data: { session } } = await supabaseAuth.auth.getSession();
+  
+  if (!session) {
+    // Force redirect to login page if unauthenticated
+    window.location.href = 'login.html';
+    return;
+  }
+
+  // 2. Save current user token for secured Edge API calls
+  userAccessToken = session.access_token;
+
+  // 3. Load initial data & load default section
+  await loadAll();
+  showSection('agenda');
+});
+
 </script>
 </body>
 </html>
