@@ -68,6 +68,7 @@
   <button id="btnCash">Cash Register</button>
   <button id="btnNotes">Notes</button>
   <button id="btnVaccines">Vaccines 💉</button>
+  <button id="btnReports">Reports</button>
 </div>
 
 <!-- OWNER SECTION -->
@@ -263,6 +264,27 @@
   <div id="vaccinesList" style="margin-top:16px"></div>
 </section>
 
+<!-- REPORT SECTION -->
+  <section id="reports-section">
+  <h2>📊 Sales Report</h2>
+
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+    <div>
+      <label><b>From:</b></label>
+      <input type="date" id="reportFrom" style="width:auto">
+    </div>
+    <div>
+      <label><b>To:</b></label>
+      <input type="date" id="reportTo" style="width:auto">
+    </div>
+    <button class="primary" onclick="generateSalesReport()">🔍 Generate</button>
+    <button onclick="exportReportPDF()" id="btnExportPDF" style="display:none;background:#e74c3c;color:white;border:none">📄 Export PDF</button>
+    <button onclick="exportReportExcel()" id="btnExportExcel" style="display:none;background:#27ae60;color:white;border:none">📊 Export Excel</button>
+  </div>
+
+  <div id="reportContent"></div>
+</section>
+
 <script>
 // =====================
 // CONFIG — Public URLs & Supabase Auth Setup
@@ -411,6 +433,13 @@ function showSection(name) {
   if (name === 'notes') loadNotes();
   if (name === 'vaccines') loadVaccines();
   if (name === 'agenda') build();
+  if (name === 'reports') {
+  const now = new Date();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+  document.getElementById('reportFrom').value = firstDay;
+  document.getElementById('reportTo').value = lastDay;
+}
 }
 
 document.getElementById('btnOwner').onclick = () => showSection('owner');
@@ -421,6 +450,7 @@ document.getElementById('btnAgenda').onclick = () => showSection('agenda');
 document.getElementById('btnCash').onclick = () => showSection('cash');
 document.getElementById('btnNotes').onclick = () => showSection('notes');
 document.getElementById('btnVaccines').onclick = () => showSection('vaccines');
+document.getElementById('btnReports').onclick = () => showSection('reports');
 
 function clearAllFields() {
   ['ownerName','ownerPhone','ownerEmail','ownerAddress','editOwnerSearch','editOwnerID',
@@ -1300,6 +1330,191 @@ async function sendVaccineReminder(petID, petName, ownerName, nextDate, lastDate
     btn.disabled = false; 
     btn.innerText = '📧 Send';
   }
+}
+
+// =====================
+// REPORTS
+// =====================
+let currentReportData = null;
+
+async function generateSalesReport() {
+  const dateFrom = document.getElementById('reportFrom').value;
+  const dateTo = document.getElementById('reportTo').value;
+  if (!dateFrom || !dateTo) { alert('Please select date range'); return; }
+  if (dateFrom > dateTo) { alert('From date must be before To date'); return; }
+
+  document.getElementById('reportContent').innerHTML = '<i>Loading...</i>';
+
+  try {
+    const data = await api('getSalesReport', { dateFrom, dateTo });
+    currentReportData = { ...data, dateFrom, dateTo };
+    renderSalesReport(data, dateFrom, dateTo);
+    document.getElementById('btnExportPDF').style.display = 'inline-block';
+    document.getElementById('btnExportExcel').style.display = 'inline-block';
+  } catch(e) {
+    document.getElementById('reportContent').innerHTML = '<i style="color:red">Error: ' + e.message + '</i>';
+  }
+}
+
+function renderSalesReport(data, dateFrom, dateTo) {
+  if (!data.receipts) {
+    document.getElementById('reportContent').innerHTML = '<i>No receipts found for this period.</i>';
+    return;
+  }
+
+  // Sort products by revenue
+  const sortedProducts = Object.entries(data.products)
+    .sort((a, b) => b[1].revenue - a[1].revenue);
+
+  // Sort daily totals
+  const sortedDays = Object.entries(data.dailyTotals)
+    .sort((a, b) => a[0].localeCompare(b[0]));
+
+  let html = `
+    <div id="reportPrintArea">
+      <h3>📊 Sales Report: ${dateFrom} → ${dateTo}</h3>
+
+      <div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:20px">
+        <div style="background:#f0f9f0;padding:12px;border-radius:8px;min-width:140px">
+          <div style="font-size:13px;color:#666">Total Revenue</div>
+          <div style="font-size:24px;font-weight:bold;color:#27ae60">€${data.totals.revenue.toFixed(2)}</div>
+        </div>
+        <div style="background:#f0f4ff;padding:12px;border-radius:8px;min-width:140px">
+          <div style="font-size:13px;color:#666">Total Receipts</div>
+          <div style="font-size:24px;font-weight:bold;color:#3498db">${data.totals.count}</div>
+        </div>
+        <div style="background:#fff8f0;padding:12px;border-radius:8px;min-width:140px">
+          <div style="font-size:13px;color:#666">Cash</div>
+          <div style="font-size:24px;font-weight:bold;color:#e67e22">€${data.totals.cash.toFixed(2)}</div>
+        </div>
+        <div style="background:#f9f0ff;padding:12px;border-radius:8px;min-width:140px">
+          <div style="font-size:13px;color:#666">Card</div>
+          <div style="font-size:24px;font-weight:bold;color:#9b59b6">€${data.totals.card.toFixed(2)}</div>
+        </div>
+      </div>
+
+      <h4>VAT Breakdown</h4>
+      <table class="table" style="width:40%;margin-bottom:20px">
+        <thead><tr><th>VAT Rate</th><th>Amount</th></tr></thead>
+        <tbody>
+          <tr><td>6%</td><td>€${data.totals.vat6.toFixed(2)}</td></tr>
+          <tr><td>13%</td><td>€${data.totals.vat13.toFixed(2)}</td></tr>
+          <tr><td>24%</td><td>€${data.totals.vat24.toFixed(2)}</td></tr>
+        </tbody>
+      </table>
+
+      <h4>🛒 Sales by Product</h4>
+      <table class="table" style="width:70%;margin-bottom:20px">
+        <thead><tr><th>Product</th><th>Qty Sold</th><th>Revenue</th></tr></thead>
+        <tbody>
+          ${sortedProducts.map(([name, d]) => `
+            <tr>
+              <td>${name}</td>
+              <td style="text-align:center">${d.qty}</td>
+              <td>€${d.revenue.toFixed(2)}</td>
+            </tr>
+          `).join('')}
+          <tr style="font-weight:bold;background:#f5f5f5">
+            <td>TOTAL</td>
+            <td style="text-align:center">${sortedProducts.reduce((s,[,d])=>s+d.qty,0)}</td>
+            <td>€${data.totals.revenue.toFixed(2)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>📅 Daily Totals</h4>
+      <table class="table" style="width:40%">
+        <thead><tr><th>Date</th><th>Revenue</th></tr></thead>
+        <tbody>
+          ${sortedDays.map(([date, total]) => `
+            <tr><td>${date}</td><td>€${total.toFixed(2)}</td></tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  document.getElementById('reportContent').innerHTML = html;
+}
+
+// =====================
+// EXPORT PDF
+// =====================
+function exportReportPDF() {
+  const printArea = document.getElementById('reportPrintArea');
+  if (!printArea) { alert('Generate a report first'); return; }
+
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Sales Report</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; color: #111; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+        th { background: #f5f5f5; }
+        h3, h4 { color: #2c3e50; }
+        .summary { display: flex; gap: 20px; margin-bottom: 20px; }
+        .summary-box { padding: 10px; border: 1px solid #ddd; border-radius: 6px; min-width: 120px; }
+        @media print { button { display: none; } }
+      </style>
+    </head>
+    <body>
+      <h2>🏥 Κτηνιατρείο Ντόνας Αθανάσιος</h2>
+      ${printArea.innerHTML}
+      <script>window.onload = () => { window.print(); window.close(); }<\/script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+
+// =====================
+// EXPORT EXCEL
+// =====================
+function exportReportExcel() {
+  if (!currentReportData) { alert('Generate a report first'); return; }
+  const { products, dailyTotals, totals, dateFrom, dateTo } = currentReportData;
+
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1 — Summary
+  const summaryData = [
+    ['Sales Report', `${dateFrom} to ${dateTo}`],
+    [],
+    ['Total Revenue', `€${totals.revenue.toFixed(2)}`],
+    ['Total Receipts', totals.count],
+    ['Cash', `€${totals.cash.toFixed(2)}`],
+    ['Card', `€${totals.card.toFixed(2)}`],
+    [],
+    ['VAT Breakdown'],
+    ['6%', `€${totals.vat6.toFixed(2)}`],
+    ['13%', `€${totals.vat13.toFixed(2)}`],
+    ['24%', `€${totals.vat24.toFixed(2)}`]
+  ];
+  const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+  XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
+
+  // Sheet 2 — Products
+  const productRows = [['Product', 'Qty Sold', 'Revenue (€)']];
+  Object.entries(products)
+    .sort((a, b) => b[1].revenue - a[1].revenue)
+    .forEach(([name, d]) => productRows.push([name, d.qty, parseFloat(d.revenue.toFixed(2))]));
+  const ws2 = XLSX.utils.aoa_to_sheet(productRows);
+  XLSX.utils.book_append_sheet(wb, ws2, 'Products');
+
+  // Sheet 3 — Daily Totals
+  const dailyRows = [['Date', 'Revenue (€)']];
+  Object.entries(dailyTotals)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .forEach(([date, total]) => dailyRows.push([date, parseFloat(total.toFixed(2))]));
+  const ws3 = XLSX.utils.aoa_to_sheet(dailyRows);
+  XLSX.utils.book_append_sheet(wb, ws3, 'Daily Totals');
+
+  // Download
+  XLSX.writeFile(wb, `sales_report_${dateFrom}_${dateTo}.xlsx`);
 }
 
 // =====================
