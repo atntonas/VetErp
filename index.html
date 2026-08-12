@@ -308,6 +308,7 @@
     <button class="primary" onclick="generateSalesReport()">🔍 Generate</button>
     <button onclick="exportReportPDF()" id="btnExportPDF" style="display:none;background:#e74c3c;color:white;border:none">📄 Export PDF</button>
     <button onclick="exportReportExcel()" id="btnExportExcel" style="display:none;background:#27ae60;color:white;border:none">📊 Export Excel</button>
+    <button onclick="closeReport()">Close</button>
   </div>
 
   <div id="reportContent"></div>
@@ -1611,6 +1612,8 @@ function renderSalesReport(data, dateFrom, dateTo) {
   document.getElementById('reportContent').innerHTML = html;
 }
 
+function closeReport() { document.getElementById('reportContent').style.display = 'none'; }
+  
 // =====================
 // EXPORT PDF
 // =====================
