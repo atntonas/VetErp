@@ -1245,7 +1245,7 @@ function buildVaccineTable(list, isOverdue) {
   
   list.forEach(v => {
     const [y, m, d] = v.nextDate.split('-').map(Number);
-    const targetDate = new Date(y, m - 2, d);
+    const targetDate = new Date(y, m, d - 15);
     const diff = Math.round((targetDate - today) / 86400000);
 
     const diffText = isOverdue 
@@ -1257,7 +1257,7 @@ function buildVaccineTable(list, isOverdue) {
     let actionButton = '';
     if (v.reminded) {
       actionButton = `<button class="small" disabled style="background:#888;cursor:not-allowed;">✅ Sent</button>`;
-    } else if (diff <= 30) {
+    } else if (diff <= 2) {
       actionButton = `<button class="small green" onclick="sendVaccineReminder('${v.petID}','${v.petName}','${v.ownerName}','${v.nextDate}','${v.lastDate}',this)">📧 Send</button>`;
     }
 
