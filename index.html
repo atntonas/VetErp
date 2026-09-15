@@ -1257,7 +1257,7 @@ function buildVaccineTable(list, isOverdue) {
     let actionButton = '';
     if (v.reminded) {
       actionButton = `<button class="small" disabled style="background:#888;cursor:not-allowed;">✅ Sent</button>`;
-    } else if (diff <= 2) {
+    } else if (diff <= 30) {
       actionButton = `<button class="small green" onclick="sendVaccineReminder('${v.petID}','${v.petName}','${v.ownerName}','${v.nextDate}','${v.lastDate}',this)">📧 Send</button>`;
     }
 
