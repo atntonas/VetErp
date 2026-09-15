@@ -1245,7 +1245,7 @@ function buildVaccineTable(list, isOverdue) {
   
   list.forEach(v => {
     const [y, m, d] = v.nextDate.split('-').map(Number);
-    const targetDate = new Date(y, m, d - 15);
+    const targetDate = new Date(y, m -1, d);
     const diff = Math.round((targetDate - today) / 86400000);
 
     const diffText = isOverdue 
